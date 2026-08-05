@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://cn04q8afrntl6"]
+
+[ext_resource type="Texture2D" uid="uid://d1ww68umslo4l" path="res://icon.svg" id="1_3vyb7"]
+[ext_resource type="Script" uid="uid://bpxdxcc2e6dqw" path="res://scripts/player.gd" id="1_g2els"]
+[ext_resource type="PackedScene" uid="uid://d2qbt4ftqdn8l" path="res://scenes/player_bullet.tscn" id="2_qhqgy"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_t3yyb"]
+size = Vector2(58, 58)
+
+[node name="Player" type="CharacterBody2D" unique_id=611721687]
+script = ExtResource("1_g2els")
+bullet_scene = ExtResource("2_qhqgy")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1321316688]
+scale = Vector2(0.45, 0.45)
+texture = ExtResource("1_3vyb7")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=545415621]
+shape = SubResource("RectangleShape2D_t3yyb")
+
+[node name="Muzzle" type="Marker2D" parent="." unique_id=2088133257]
+position = Vector2(0, -40)
+
+[node name="FireTimer" type="Timer" parent="." unique_id=723873408]
+wait_time = 0.25
+one_shot = true
+
+[node name="InvulnerabilityTimer" type="Timer" parent="." unique_id=1051610939]
+one_shot = true
+
+[connection signal="timeout" from="InvulnerabilityTimer" to="." method="_on_invulnerability_timer_timeout"]

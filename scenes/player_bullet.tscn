@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://d2qbt4ftqdn8l"]
+
+[ext_resource type="Script" uid="uid://bcxm4bvdfjjln" path="res://scripts/player_bullet.gd" id="1_4g3gs"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_t3yyb"]
+size = Vector2(8, 20)
+
+[node name="PlayerBullet" type="Area2D" unique_id=1513832540]
+collision_layer = 2
+collision_mask = 4
+script = ExtResource("1_4g3gs")
+
+[node name="Visual" type="ColorRect" parent="." unique_id=10463271]
+offset_left = -4.0
+offset_top = -10.0
+offset_right = 4.0
+offset_bottom = 10.0
+color = Color(0.99999326, 0.50396687, 0.19814771, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1552050662]
+shape = SubResource("RectangleShape2D_t3yyb")
