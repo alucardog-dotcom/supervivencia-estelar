@@ -11,6 +11,7 @@ var pulse_time := 0.0
 
 func _ready() -> void:
 	add_to_group("projectiles")
+	add_to_group("player_projectiles")
 
 
 func setup(new_direction: Vector2) -> void:

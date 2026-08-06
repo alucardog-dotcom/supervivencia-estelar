@@ -10,6 +10,8 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/player/commando/walk_left.png" id="7_walk_left"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/commando/walk_shoot_up_right.png" id="8_walk_shoot_right"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/commando/walk_shoot_up_left.png" id="9_walk_shoot_left"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/crouch_right.png" id="10_crouch_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/crouch_left.png" id="11_crouch_left"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t3yyb"]
 size = Vector2(36, 86)
@@ -18,7 +20,7 @@ size = Vector2(36, 86)
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_idle_right")
+"texture": ExtResource("10_crouch_right")
 }],
 "loop": true,
 "name": &"idle_right",
@@ -26,7 +28,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("3_idle_left")
+"texture": ExtResource("11_crouch_left")
 }],
 "loop": true,
 "name": &"idle_left",
@@ -91,6 +93,54 @@ animations = [{
 "loop": true,
 "name": &"walk_shoot_up_left",
 "speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_idle_right")
+}],
+"loop": true,
+"name": &"crouch_right",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_idle_left")
+}],
+"loop": true,
+"name": &"crouch_left",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_walk_right")
+}],
+"loop": true,
+"name": &"jump_right",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_walk_left")
+}],
+"loop": true,
+"name": &"jump_left",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_shoot_right")
+}],
+"loop": true,
+"name": &"jump_up_right",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_shoot_left")
+}],
+"loop": true,
+"name": &"jump_up_left",
+"speed": 1.0
 }]
 
 [node name="Player" type="CharacterBody2D" unique_id=611721687]

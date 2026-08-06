@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://b2yy8iynfxevu" path="res://scenes/fast_enemy.tscn" id="4_tbgi4"]
 [ext_resource type="Texture2D" uid="uid://dh3p1kccvvqlw" path="res://assets/backgrounds/earth_last_stand_platform_pixel.png" id="5_background"]
 [ext_resource type="Texture2D" path="res://assets/ui/commando_portrait.png" id="6_portrait"]
+[ext_resource type="PackedScene" path="res://scenes/ground_enemy.tscn" id="7_ground_enemy"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
 bg_color = Color(0.0196078, 0.0352941, 0.0784314, 0.94)
@@ -29,6 +30,7 @@ script = ExtResource("1_sugp2")
 enemy_scene = ExtResource("2_0wfyh")
 aimed_enemy_scene = ExtResource("3_jyhfs")
 fast_enemy_scene = ExtResource("4_tbgi4")
+ground_enemy_scene = ExtResource("7_ground_enemy")
 final_max_enemies = 10
 
 [node name="Background" type="TextureRect" parent="." unique_id=176089468]
@@ -164,6 +166,18 @@ theme_override_font_sizes/font_size = 30
 text = "OLEADA 1"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="ControlsLabel" type="Label" parent="HUD"]
+offset_left = 176.0
+offset_top = 606.0
+offset_right = 976.0
+offset_bottom = 638.0
+theme_override_colors/font_color = Color(0.737255, 0.85098, 1, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.027451, 0.0745098, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 16
+text = "A/D MOVER   SHIFT SALTAR   S AGACHARSE   W APUNTAR ARRIBA   ESPACIO DISPARAR"
+horizontal_alignment = 1
 
 [node name="GameOverOverlay" type="ColorRect" parent="HUD" unique_id=2003815479]
 visible = false

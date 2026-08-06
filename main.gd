@@ -6,11 +6,13 @@ const MAX_SCORES := 5
 @export var enemy_scene: PackedScene
 @export var aimed_enemy_scene: PackedScene
 @export var fast_enemy_scene: PackedScene
+@export var ground_enemy_scene: PackedScene
 @export var initial_max_enemies: int = 3
 @export var final_max_enemies: int = 8
 @export var base_enemies_per_wave: int = 6
 @export var enemies_per_wave_growth: int = 2
 @export var wave_break_duration: float = 4.0
+@export var ground_enemy_start_wave: int = 3
 
 @onready var enemy_spawn_timer: Timer = $EnemySpawnTimer
 @onready var wave_break_timer: Timer = $WaveBreakTimer
@@ -21,6 +23,7 @@ const MAX_SCORES := 5
 @onready var ammo_label: Label = $HUD/StatusPanel/AmmoLabel
 @onready var time_label: Label = $HUD/TimeLabel
 @onready var wave_label: Label = $HUD/WaveLabel
+@onready var controls_label: Label = $HUD/ControlsLabel
 @onready var game_over_label: Label = $HUD/GameOverLabel
 @onready var initials_prompt: Label = $HUD/InitialsPrompt
 @onready var initials_input: LineEdit = $HUD/InitialsInput
@@ -87,6 +90,23 @@ func _ready() -> void:
 		)
 
 	start_wave()
+	show_controls_temporarily()
+
+
+func show_controls_temporarily() -> void:
+	if not Input.get_connected_joypads().is_empty():
+		controls_label.text = (
+			"STICK/CRUCETA MOVER Y APUNTAR   "
+			+ "A SALTAR   X DISPARAR"
+		)
+
+	controls_label.show()
+	controls_label.modulate.a = 1.0
+
+	var tween := create_tween()
+	tween.tween_interval(6.0)
+	tween.tween_property(controls_label, "modulate:a", 0.0, 1.0)
+	tween.tween_callback(controls_label.hide)
 
 
 func _process(delta: float) -> void:
@@ -122,14 +142,21 @@ func _on_enemy_spawn_timer_timeout() -> void:
 
 	var enemy := selected_enemy_scene.instantiate() as Area2D
 
-	enemy.call("apply_difficulty", difficulty_level)
+	if enemy.has_method("apply_difficulty"):
+		enemy.call("apply_difficulty", difficulty_level)
+
 	enemy.connect("destroyed", _on_enemy_destroyed)
 	add_child(enemy)
 
-	enemy.global_position = Vector2(
-		randf_range(60.0, 1092.0),
-		randf_range(80.0, 220.0)
-	)
+	if enemy.has_method("spawn_from_side"):
+		var side := -1 if randf() < 0.5 else 1
+		show_side_warning(side)
+		enemy.call("spawn_from_side", side)
+	else:
+		enemy.global_position = Vector2(
+			randf_range(60.0, 1092.0),
+			randf_range(80.0, 220.0)
+		)
 
 	wave_spawned += 1
 
@@ -138,6 +165,19 @@ func _on_enemy_spawn_timer_timeout() -> void:
 
 
 func choose_enemy_scene() -> PackedScene:
+	var ground_probability := clampf(
+		0.2 + (wave_number - ground_enemy_start_wave) * 0.06,
+		0.2,
+		0.5
+	)
+
+	if (
+		wave_number >= ground_enemy_start_wave
+		and ground_enemy_scene != null
+		and randf() < ground_probability
+	):
+		return ground_enemy_scene
+
 	if (
 		difficulty_level >= 3
 		and fast_enemy_scene != null
@@ -153,6 +193,34 @@ func choose_enemy_scene() -> PackedScene:
 		return aimed_enemy_scene
 
 	return enemy_scene
+
+
+func show_side_warning(side: int) -> void:
+	var warning := Label.new()
+	warning.text = ">>" if side < 0 else "<<"
+	warning.position = Vector2(
+		18.0 if side < 0 else 1090.0,
+		500.0
+	)
+	warning.add_theme_color_override(
+		"font_color",
+		Color("ff365c")
+	)
+	warning.add_theme_color_override(
+		"font_outline_color",
+		Color.BLACK
+	)
+	warning.add_theme_constant_override("outline_size", 5)
+	warning.add_theme_font_size_override("font_size", 32)
+	$HUD.add_child(warning)
+
+	var tween := create_tween()
+
+	for _blink in range(3):
+		tween.tween_property(warning, "modulate:a", 0.15, 0.12)
+		tween.tween_property(warning, "modulate:a", 1.0, 0.12)
+
+	tween.tween_callback(warning.queue_free)
 
 
 func start_wave() -> void:
