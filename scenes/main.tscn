@@ -5,6 +5,24 @@
 [ext_resource type="PackedScene" uid="uid://k6wdfdg61om3" path="res://scenes/enemy.tscn" id="2_0wfyh"]
 [ext_resource type="PackedScene" uid="uid://cei3sm53hrusv" path="res://scenes/aimed_enemy.tscn" id="3_jyhfs"]
 [ext_resource type="PackedScene" uid="uid://b2yy8iynfxevu" path="res://scenes/fast_enemy.tscn" id="4_tbgi4"]
+[ext_resource type="Texture2D" uid="uid://dh3p1kccvvqlw" path="res://assets/backgrounds/earth_last_stand_platform_pixel.png" id="5_background"]
+[ext_resource type="Texture2D" path="res://assets/ui/commando_portrait.png" id="6_portrait"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
+bg_color = Color(0.0196078, 0.0352941, 0.0784314, 0.94)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.188235, 0.47451, 0.67451, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_portrait"]
+bg_color = Color(0.00784314, 0.0117647, 0.027451, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.94902, 0.65098, 0.192157, 1)
 
 [node name="Main" type="Node2D" unique_id=2092926339]
 script = ExtResource("1_sugp2")
@@ -13,26 +31,116 @@ aimed_enemy_scene = ExtResource("3_jyhfs")
 fast_enemy_scene = ExtResource("4_tbgi4")
 final_max_enemies = 10
 
+[node name="Background" type="TextureRect" parent="." unique_id=176089468]
+z_index = -10
+texture_filter = 1
+offset_right = 1152.0
+offset_bottom = 648.0
+mouse_filter = 2
+texture = ExtResource("5_background")
+expand_mode = 1
+stretch_mode = 6
+
 [node name="Player" parent="." unique_id=611721687 instance=ExtResource("1_o5qli")]
-position = Vector2(576, 570)
+position = Vector2(576, 546)
 
 [node name="EnemySpawnTimer" type="Timer" parent="." unique_id=1545613507]
 wait_time = 2.0
-autostart = true
 
-[node name="DifficultyTimer" type="Timer" parent="." unique_id=1746888923]
-wait_time = 15.0
-autostart = true
+[node name="WaveBreakTimer" type="Timer" parent="." unique_id=1589747321]
+wait_time = 4.0
+one_shot = true
+
+[node name="WaveMessageTimer" type="Timer" parent="." unique_id=283201370]
+wait_time = 1.5
+one_shot = true
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1551828944]
+position = Vector2(576, 324)
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1433803769]
 
-[node name="HealthLabel" type="Label" parent="HUD" unique_id=1629451783]
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 107.0
-offset_bottom = 43.0
-theme_override_font_sizes/font_size = 28
-text = "VIDA: ♥ ♥ ♥"
+[node name="StatusPanel" type="Panel" parent="HUD"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 350.0
+offset_bottom = 94.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud")
+
+[node name="PortraitFrame" type="Panel" parent="HUD/StatusPanel"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 74.0
+offset_bottom = 74.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_portrait")
+
+[node name="Portrait" type="TextureRect" parent="HUD/StatusPanel"]
+texture_filter = 1
+offset_left = 11.0
+offset_top = 11.0
+offset_right = 71.0
+offset_bottom = 71.0
+mouse_filter = 2
+texture = ExtResource("6_portrait")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PlayerTag" type="Label" parent="HUD/StatusPanel"]
+offset_left = 84.0
+offset_top = 5.0
+offset_right = 126.0
+offset_bottom = 31.0
+theme_override_colors/font_color = Color(1, 0.666667, 0.196078, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 20
+text = "1P"
+
+[node name="LifeTitle" type="Label" parent="HUD/StatusPanel"]
+offset_left = 134.0
+offset_top = 7.0
+offset_right = 196.0
+offset_bottom = 31.0
+theme_override_colors/font_color = Color(0.678431, 0.811765, 0.933333, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 16
+text = "VIDA"
+
+[node name="HealthLabel" type="Label" parent="HUD/StatusPanel" unique_id=1629451783]
+offset_left = 198.0
+offset_top = 3.0
+offset_right = 330.0
+offset_bottom = 33.0
+theme_override_colors/font_color = Color(1, 0.231373, 0.203922, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 21
+text = "♥ ♥ ♥"
+
+[node name="AmmoTitle" type="Label" parent="HUD/StatusPanel"]
+offset_left = 84.0
+offset_top = 43.0
+offset_right = 154.0
+offset_bottom = 70.0
+theme_override_colors/font_color = Color(0.678431, 0.811765, 0.933333, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 16
+text = "BALAS"
+
+[node name="AmmoLabel" type="Label" parent="HUD/StatusPanel" unique_id=14755743]
+offset_left = 157.0
+offset_top = 38.0
+offset_right = 326.0
+offset_bottom = 72.0
+theme_override_colors/font_color = Color(1, 0.823529, 0.294118, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 22
+text = "20 / 20"
 
 [node name="TimeLabel" type="Label" parent="HUD" unique_id=1004187183]
 offset_left = 900.0
@@ -42,6 +150,20 @@ offset_bottom = 70.0
 theme_override_font_sizes/font_size = 28
 text = "TIEMPO: 0.0"
 horizontal_alignment = 2
+
+[node name="WaveLabel" type="Label" parent="HUD" unique_id=583794417]
+visible = false
+offset_left = 376.0
+offset_top = 90.0
+offset_right = 776.0
+offset_bottom = 140.0
+theme_override_colors/font_color = Color(0.854902, 0.705882, 1, 1)
+theme_override_colors/font_outline_color = Color(0.0588235, 0.0196078, 0.117647, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 30
+text = "OLEADA 1"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="GameOverOverlay" type="ColorRect" parent="HUD" unique_id=2003815479]
 visible = false
@@ -91,7 +213,7 @@ offset_right = 826.0
 offset_bottom = 570.0
 theme_override_font_sizes/font_size = 25
 
+[connection signal="ammo_changed" from="Player" to="." method="_on_player_ammo_changed"]
 [connection signal="died" from="Player" to="." method="_on_player_died"]
 [connection signal="health_changed" from="Player" to="." method="_on_player_health_changed"]
 [connection signal="timeout" from="EnemySpawnTimer" to="." method="_on_enemy_spawn_timer_timeout"]
-[connection signal="timeout" from="DifficultyTimer" to="." method="_on_dificulty_timer_timeout"]

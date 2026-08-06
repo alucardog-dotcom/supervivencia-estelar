@@ -1,31 +1,177 @@
 [gd_scene format=3 uid="uid://cn04q8afrntl6"]
 
-[ext_resource type="Texture2D" uid="uid://d1ww68umslo4l" path="res://icon.svg" id="1_3vyb7"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/idle_right.png" id="1_idle_right"]
 [ext_resource type="Script" uid="uid://bpxdxcc2e6dqw" path="res://scripts/player.gd" id="1_g2els"]
 [ext_resource type="PackedScene" uid="uid://d2qbt4ftqdn8l" path="res://scenes/player_bullet.tscn" id="2_qhqgy"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/idle_left.png" id="3_idle_left"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/shoot_up_right.png" id="4_shoot_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/shoot_up_left.png" id="5_shoot_left"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/walk_right.png" id="6_walk_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/walk_left.png" id="7_walk_left"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/walk_shoot_up_right.png" id="8_walk_shoot_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/commando/walk_shoot_up_left.png" id="9_walk_shoot_left"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t3yyb"]
-size = Vector2(58, 58)
+size = Vector2(36, 86)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_commando"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_idle_right")
+}],
+"loop": true,
+"name": &"idle_right",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_idle_left")
+}],
+"loop": true,
+"name": &"idle_left",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_idle_right")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_walk_right")
+}],
+"loop": true,
+"name": &"walk_right",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_idle_left")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_walk_left")
+}],
+"loop": true,
+"name": &"walk_left",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_shoot_right")
+}],
+"loop": true,
+"name": &"shoot_up_right",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_shoot_left")
+}],
+"loop": true,
+"name": &"shoot_up_left",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_shoot_right")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_walk_shoot_right")
+}],
+"loop": true,
+"name": &"walk_shoot_up_right",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_shoot_left")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_walk_shoot_left")
+}],
+"loop": true,
+"name": &"walk_shoot_up_left",
+"speed": 7.0
+}]
 
 [node name="Player" type="CharacterBody2D" unique_id=611721687]
 script = ExtResource("1_g2els")
+horizontal_margin = 40.0
 bullet_scene = ExtResource("2_qhqgy")
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1321316688]
-scale = Vector2(0.45, 0.45)
-texture = ExtResource("1_3vyb7")
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1321316688]
+texture_filter = 1
+scale = Vector2(2, 2)
+sprite_frames = SubResource("SpriteFrames_commando")
+animation = &"idle_right"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=545415621]
+position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_t3yyb")
 
+[node name="ReloadBar" type="ProgressBar" parent="."]
+visible = false
+z_index = 5
+offset_left = -50.0
+offset_top = -84.0
+offset_right = 50.0
+offset_bottom = -64.0
+mouse_filter = 2
+max_value = 3.5
+show_percentage = false
+
+[node name="ReloadLabel" type="Label" parent="."]
+visible = false
+z_index = 6
+offset_left = -50.0
+offset_top = -84.0
+offset_right = 50.0
+offset_bottom = -64.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 12
+text = "RELOAD"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Muzzle" type="Marker2D" parent="." unique_id=2088133257]
-position = Vector2(0, -40)
+position = Vector2(27, -52)
+
+[node name="MuzzleFlash" type="Node2D" parent="Muzzle"]
+visible = false
+
+[node name="Outer" type="ColorRect" parent="Muzzle/MuzzleFlash"]
+offset_left = -4.0
+offset_top = -9.0
+offset_right = 4.0
+offset_bottom = 3.0
+mouse_filter = 2
+color = Color(0.0392157, 0.690196, 1, 1)
+
+[node name="Core" type="ColorRect" parent="Muzzle/MuzzleFlash"]
+offset_left = -2.0
+offset_top = -12.0
+offset_right = 2.0
+offset_bottom = 1.0
+mouse_filter = 2
+color = Color(0.901961, 1, 1, 1)
 
 [node name="FireTimer" type="Timer" parent="." unique_id=723873408]
-wait_time = 0.25
+wait_time = 0.18
+one_shot = true
+
+[node name="MuzzleFlashTimer" type="Timer" parent="."]
+wait_time = 0.06
+one_shot = true
+
+[node name="ReloadTimer" type="Timer" parent="."]
+wait_time = 3.5
 one_shot = true
 
 [node name="InvulnerabilityTimer" type="Timer" parent="." unique_id=1051610939]
 one_shot = true
 
 [connection signal="timeout" from="InvulnerabilityTimer" to="." method="_on_invulnerability_timer_timeout"]
+[connection signal="timeout" from="MuzzleFlashTimer" to="." method="_on_muzzle_flash_timer_timeout"]
+[connection signal="timeout" from="ReloadTimer" to="." method="_on_reload_timer_timeout"]

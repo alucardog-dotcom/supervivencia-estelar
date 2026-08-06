@@ -8,11 +8,19 @@ const MAX_SCORES := 5
 @export var fast_enemy_scene: PackedScene
 @export var initial_max_enemies: int = 3
 @export var final_max_enemies: int = 8
+@export var base_enemies_per_wave: int = 6
+@export var enemies_per_wave_growth: int = 2
+@export var wave_break_duration: float = 4.0
 
 @onready var enemy_spawn_timer: Timer = $EnemySpawnTimer
-@onready var difficulty_timer: Timer = $DifficultyTimer
-@onready var health_label: Label = $HUD/HealthLabel
+@onready var wave_break_timer: Timer = $WaveBreakTimer
+@onready var wave_message_timer: Timer = $WaveMessageTimer
+@onready var camera: Camera2D = $Camera2D
+@onready var status_panel: Panel = $HUD/StatusPanel
+@onready var health_label: Label = $HUD/StatusPanel/HealthLabel
+@onready var ammo_label: Label = $HUD/StatusPanel/AmmoLabel
 @onready var time_label: Label = $HUD/TimeLabel
+@onready var wave_label: Label = $HUD/WaveLabel
 @onready var game_over_label: Label = $HUD/GameOverLabel
 @onready var initials_prompt: Label = $HUD/InitialsPrompt
 @onready var initials_input: LineEdit = $HUD/InitialsInput
@@ -25,6 +33,13 @@ var max_enemies: int
 var is_game_over := false
 var waiting_for_initials := false
 var leaderboard: Array = []
+var wave_number := 1
+var wave_target := 0
+var wave_spawned := 0
+var wave_defeated := 0
+var wave_active := false
+var camera_shake_time := 0.0
+var camera_shake_strength := 0.0
 
 
 func _ready() -> void:
@@ -33,6 +48,12 @@ func _ready() -> void:
 	initials_input.hide()
 	leaderboard_label.hide()
 	game_over_overlay.hide()
+	wave_label.hide()
+	_on_player_health_changed(int($Player.get("health")))
+	_on_player_ammo_changed(
+		int($Player.get("current_ammo")),
+		int($Player.get("magazine_size"))
+	)
 
 	max_enemies = initial_max_enemies
 	load_leaderboard()
@@ -44,11 +65,18 @@ func _ready() -> void:
 			_on_enemy_spawn_timer_timeout
 		)
 
-	if not difficulty_timer.timeout.is_connected(
-		_on_difficulty_timer_timeout
+	if not wave_break_timer.timeout.is_connected(
+		_on_wave_break_timer_timeout
 	):
-		difficulty_timer.timeout.connect(
-			_on_difficulty_timer_timeout
+		wave_break_timer.timeout.connect(
+			_on_wave_break_timer_timeout
+		)
+
+	if not wave_message_timer.timeout.is_connected(
+		_on_wave_message_timer_timeout
+	):
+		wave_message_timer.timeout.connect(
+			_on_wave_message_timer_timeout
 		)
 
 	if not initials_input.text_submitted.is_connected(
@@ -58,11 +86,12 @@ func _ready() -> void:
 			_on_initials_input_text_submitted
 		)
 
-	enemy_spawn_timer.start()
-	difficulty_timer.start()
+	start_wave()
 
 
 func _process(delta: float) -> void:
+	update_camera_shake(delta)
+
 	if is_game_over:
 		return
 
@@ -71,6 +100,13 @@ func _process(delta: float) -> void:
 
 
 func _on_enemy_spawn_timer_timeout() -> void:
+	if not wave_active:
+		return
+
+	if wave_spawned >= wave_target:
+		enemy_spawn_timer.stop()
+		return
+
 	var current_enemies := get_tree().get_nodes_in_group(
 		"enemies"
 	).size()
@@ -87,12 +123,18 @@ func _on_enemy_spawn_timer_timeout() -> void:
 	var enemy := selected_enemy_scene.instantiate() as Area2D
 
 	enemy.call("apply_difficulty", difficulty_level)
+	enemy.connect("destroyed", _on_enemy_destroyed)
 	add_child(enemy)
 
 	enemy.global_position = Vector2(
 		randf_range(60.0, 1092.0),
 		randf_range(80.0, 220.0)
 	)
+
+	wave_spawned += 1
+
+	if wave_spawned >= wave_target:
+		enemy_spawn_timer.stop()
 
 
 func choose_enemy_scene() -> PackedScene:
@@ -113,8 +155,15 @@ func choose_enemy_scene() -> PackedScene:
 	return enemy_scene
 
 
-func _on_difficulty_timer_timeout() -> void:
-	difficulty_level += 1
+func start_wave() -> void:
+	wave_active = true
+	wave_spawned = 0
+	wave_defeated = 0
+	difficulty_level = wave_number - 1
+	wave_target = (
+		base_enemies_per_wave
+		+ (wave_number - 1) * enemies_per_wave_growth
+	)
 
 	max_enemies = mini(
 		initial_max_enemies + difficulty_level,
@@ -126,11 +175,69 @@ func _on_difficulty_timer_timeout() -> void:
 		0.7
 	)
 
+	show_wave_message("OLEADA %d" % wave_number)
+	enemy_spawn_timer.start()
+
 	print(
-		"Nivel de dificultad: ",
-		difficulty_level,
-		" | Máximo de enemigos: ",
-		max_enemies
+		"Oleada: ",
+		wave_number,
+		" | Enemigos: ",
+		wave_target
+	)
+
+
+func _on_enemy_destroyed() -> void:
+	if is_game_over or not wave_active:
+		return
+
+	wave_defeated += 1
+
+	if wave_defeated >= wave_target:
+		finish_wave()
+
+
+func finish_wave() -> void:
+	wave_active = false
+	enemy_spawn_timer.stop()
+	show_wave_message("OLEADA COMPLETADA")
+	wave_break_timer.wait_time = wave_break_duration
+	wave_break_timer.start()
+
+
+func _on_wave_break_timer_timeout() -> void:
+	wave_number += 1
+	start_wave()
+
+
+func show_wave_message(message: String) -> void:
+	wave_label.text = message
+	wave_label.show()
+	wave_message_timer.start()
+
+
+func _on_wave_message_timer_timeout() -> void:
+	wave_label.hide()
+
+
+func shake_camera(strength: float, duration: float) -> void:
+	camera_shake_strength = maxf(camera_shake_strength, strength)
+	camera_shake_time = maxf(camera_shake_time, duration)
+
+
+func update_camera_shake(delta: float) -> void:
+	if camera_shake_time <= 0.0:
+		camera.offset = Vector2.ZERO
+		return
+
+	camera_shake_time -= delta
+	camera.offset = Vector2(
+		randf_range(-camera_shake_strength, camera_shake_strength),
+		randf_range(-camera_shake_strength, camera_shake_strength)
+	)
+	camera_shake_strength = move_toward(
+		camera_shake_strength,
+		0.0,
+		delta * 18.0
 	)
 
 
@@ -140,14 +247,25 @@ func _on_player_health_changed(current_health: int) -> void:
 	for _heart in range(current_health):
 		hearts += "♥ "
 
-	health_label.text = "VIDA: " + hearts
+	health_label.text = hearts.strip_edges()
+
+
+func _on_player_ammo_changed(
+	current_ammo: int,
+	magazine_size: int
+) -> void:
+	ammo_label.text = "%02d / %02d" % [
+		current_ammo,
+		magazine_size
+	]
 
 
 func _on_player_died() -> void:
 	is_game_over = true
 	stop_gameplay()
-	health_label.hide()
+	status_panel.hide()
 	time_label.hide()
+	wave_label.hide()
 	game_over_overlay.show()
 
 	game_over_label.text = (
@@ -164,7 +282,8 @@ func _on_player_died() -> void:
 
 func stop_gameplay() -> void:
 	enemy_spawn_timer.stop()
-	difficulty_timer.stop()
+	wave_break_timer.stop()
+	wave_message_timer.stop()
 
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		enemy.process_mode = Node.PROCESS_MODE_DISABLED

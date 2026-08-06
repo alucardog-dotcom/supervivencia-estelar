@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bspqyag21ss8n" path="res://scripts/enemy.gd" id="1_xs52q"]
 [ext_resource type="PackedScene" uid="uid://bfaa2is3pnapq" path="res://scenes/enemy_bullet.tscn" id="2_73f7u"]
-[ext_resource type="Texture2D" uid="uid://d1ww68umslo4l" path="res://icon.svg" id="3_uno8e"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/alien_hunter.png" id="3_uno8e"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t3yyb"]
 size = Vector2(52, 52)
@@ -13,10 +13,11 @@ collision_mask = 2
 script = ExtResource("1_xs52q")
 enemy_bullet_scene = ExtResource("2_73f7u")
 fire_mode = 1
+hover_amplitude = 11.0
+hover_frequency = 0.45
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1996693979]
-modulate = Color(0.47526616, 0.40425876, 0.1214278, 1)
-scale = Vector2(0.4, 0.4)
+texture_filter = 1
 texture = ExtResource("3_uno8e")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1948537912]

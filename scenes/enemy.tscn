@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://k6wdfdg61om3"]
 
-[ext_resource type="Texture2D" uid="uid://d1ww68umslo4l" path="res://icon.svg" id="1_7p1mj"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/alien_interceptor.png" id="1_7p1mj"]
 [ext_resource type="Script" uid="uid://bspqyag21ss8n" path="res://scripts/enemy.gd" id="1_md0e3"]
 [ext_resource type="PackedScene" uid="uid://bfaa2is3pnapq" path="res://scenes/enemy_bullet.tscn" id="3_4ra3w"]
 
@@ -14,8 +14,7 @@ script = ExtResource("1_md0e3")
 enemy_bullet_scene = ExtResource("3_4ra3w")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1996693979]
-modulate = Color(0.7490196, 0.10980392, 0.14509805, 1)
-scale = Vector2(0.4, 0.4)
+texture_filter = 1
 texture = ExtResource("1_7p1mj")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1948537912]

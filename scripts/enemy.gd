@@ -1,5 +1,9 @@
 extends Area2D
 
+signal destroyed
+
+const EXPLOSION_SCENE := preload("res://scenes/explosion.tscn")
+
 enum FireMode {
 	RANDOM,
 	AIMED
@@ -9,6 +13,8 @@ enum FireMode {
 @export var max_x: float = 1092.0
 @export var enemy_bullet_scene: PackedScene
 @export var fire_mode: FireMode = FireMode.RANDOM
+@export var hover_amplitude: float = 18.0
+@export var hover_frequency: float = 0.6
 
 @export var base_speed: float = 220.0
 @export var speed_per_level: float = 30.0
@@ -22,6 +28,13 @@ var speed: float
 var min_fire_interval: float
 var max_fire_interval: float
 var direction: float = 1.0
+var hover_center_y: float
+var hover_time := 0.0
+var hover_phase: float
+var actual_hover_amplitude: float
+var actual_hover_frequency: float
+var hover_initialized := false
+var is_destroying := false
 
 
 func _ready() -> void:
@@ -31,11 +44,29 @@ func _ready() -> void:
 		apply_difficulty(0)
 
 	direction = [-1.0, 1.0].pick_random()
+	hover_phase = randf_range(0.0, TAU)
+	actual_hover_amplitude = hover_amplitude * randf_range(
+		0.85,
+		1.15
+	)
+	actual_hover_frequency = hover_frequency * randf_range(
+		0.9,
+		1.1
+	)
 	start_fire_timer()
 
 
 func _process(delta: float) -> void:
+	if not hover_initialized:
+		hover_center_y = global_position.y
+		hover_initialized = true
+
+	hover_time += delta
 	global_position.x += direction * speed * delta
+	global_position.y = hover_center_y + sin(
+		hover_time * TAU * actual_hover_frequency
+		+ hover_phase
+	) * actual_hover_amplitude
 
 	if global_position.x <= min_x:
 		global_position.x = min_x
@@ -101,5 +132,22 @@ func _on_fire_timer_timeout() -> void:
 
 
 func _on_area_entered(area: Area2D) -> void:
+	if is_destroying:
+		return
+
+	is_destroying = true
 	area.queue_free()
+	destroyed.emit()
+
+	var explosion := EXPLOSION_SCENE.instantiate() as Node2D
+	get_tree().current_scene.add_child(explosion)
+	explosion.global_position = global_position
+
+	if get_tree().current_scene.has_method("shake_camera"):
+		get_tree().current_scene.call(
+			"shake_camera",
+			3.0,
+			0.12
+		)
+
 	queue_free()

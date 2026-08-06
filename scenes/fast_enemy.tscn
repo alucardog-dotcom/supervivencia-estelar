@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bspqyag21ss8n" path="res://scripts/enemy.gd" id="1_lpnxe"]
 [ext_resource type="PackedScene" uid="uid://bfaa2is3pnapq" path="res://scenes/enemy_bullet.tscn" id="2_48uji"]
-[ext_resource type="Texture2D" uid="uid://d1ww68umslo4l" path="res://icon.svg" id="3_s8mdy"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/alien_raider.png" id="3_s8mdy"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t3yyb"]
 size = Vector2(52, 52)
@@ -12,13 +12,15 @@ collision_layer = 4
 collision_mask = 2
 script = ExtResource("1_lpnxe")
 enemy_bullet_scene = ExtResource("2_48uji")
+hover_amplitude = 28.0
+hover_frequency = 1.0
 base_speed = 340.0
 speed_per_level = 40.0
 base_min_fire_interval = 0.35
 base_max_fire_interval = 0.75
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1996693979]
-scale = Vector2(0.4, 0.4)
+texture_filter = 1
 texture = ExtResource("3_s8mdy")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1948537912]
