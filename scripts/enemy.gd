@@ -1,6 +1,6 @@
 extends Area2D
 
-signal destroyed
+signal destroyed(score_value: int)
 
 const EXPLOSION_SCENE := preload("res://scenes/explosion.tscn")
 
@@ -15,6 +15,7 @@ enum FireMode {
 @export var fire_mode: FireMode = FireMode.RANDOM
 @export var hover_amplitude: float = 18.0
 @export var hover_frequency: float = 0.6
+@export var score_value: int = 100
 
 @export var base_speed: float = 220.0
 @export var speed_per_level: float = 30.0
@@ -23,6 +24,7 @@ enum FireMode {
 
 @onready var muzzle: Marker2D = $Muzzle
 @onready var fire_timer: Timer = $FireTimer
+@onready var shot_sound: AudioStreamPlayer2D = $ShotSound
 
 var speed: float
 var min_fire_interval: float
@@ -100,7 +102,7 @@ func start_fire_timer() -> void:
 
 func shoot() -> void:
 	if enemy_bullet_scene == null:
-		push_error("Enemy Bullet Scene no está asignada.")
+		push_error("Enemy Bullet Scene is not assigned.")
 		return
 
 	var bullet := enemy_bullet_scene.instantiate() as EnemyBullet
@@ -124,6 +126,7 @@ func shoot() -> void:
 	get_tree().current_scene.add_child(bullet)
 	bullet.global_position = muzzle.global_position
 	bullet.setup(bullet_direction)
+	shot_sound.play()
 
 
 func _on_fire_timer_timeout() -> void:
@@ -135,9 +138,18 @@ func _on_area_entered(area: Area2D) -> void:
 	if is_destroying:
 		return
 
-	is_destroying = true
 	area.queue_free()
-	destroyed.emit()
+	destroy(true)
+
+
+func destroy(award_points := true) -> void:
+	if is_destroying:
+		return
+
+	is_destroying = true
+
+	if award_points:
+		destroyed.emit(score_value)
 
 	var explosion := EXPLOSION_SCENE.instantiate() as Node2D
 	get_tree().current_scene.add_child(explosion)

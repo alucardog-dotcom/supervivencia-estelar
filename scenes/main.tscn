@@ -6,8 +6,17 @@
 [ext_resource type="PackedScene" uid="uid://cei3sm53hrusv" path="res://scenes/aimed_enemy.tscn" id="3_jyhfs"]
 [ext_resource type="PackedScene" uid="uid://b2yy8iynfxevu" path="res://scenes/fast_enemy.tscn" id="4_tbgi4"]
 [ext_resource type="Texture2D" uid="uid://dh3p1kccvvqlw" path="res://assets/backgrounds/earth_last_stand_platform_pixel.png" id="5_background"]
-[ext_resource type="Texture2D" path="res://assets/ui/commando_portrait.png" id="6_portrait"]
+[ext_resource type="Texture2D" path="res://assets/ui/red_commando_portrait_exact.png" id="6_portrait"]
 [ext_resource type="PackedScene" path="res://scenes/ground_enemy.tscn" id="7_ground_enemy"]
+[ext_resource type="AudioStream" path="res://assets/audio/ground_enemy_warning.wav" id="8_ground_warning"]
+[ext_resource type="PackedScene" path="res://scenes/kamikaze_enemy.tscn" id="9_kamikaze"]
+[ext_resource type="AudioStream" path="res://assets/audio/dark_boss_theme.wav" id="10_gameplay_music"]
+[ext_resource type="AudioStream" path="res://assets/audio/game_over_lament.wav" id="11_game_over_music"]
+[ext_resource type="PackedScene" path="res://scenes/powerup_carrier.tscn" id="12_powerup_carrier"]
+[ext_resource type="PackedScene" path="res://scenes/powerup_item.tscn" id="13_powerup_item"]
+[ext_resource type="AudioStream" path="res://assets/audio/extra_life.wav" id="14_extra_life"]
+[ext_resource type="AudioStream" path="res://assets/audio/powerup_pickup.wav" id="15_powerup_pickup"]
+[ext_resource type="AudioStream" path="res://assets/audio/screen_bomb.wav" id="16_screen_bomb"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
 bg_color = Color(0.0196078, 0.0352941, 0.0784314, 0.94)
@@ -31,6 +40,9 @@ enemy_scene = ExtResource("2_0wfyh")
 aimed_enemy_scene = ExtResource("3_jyhfs")
 fast_enemy_scene = ExtResource("4_tbgi4")
 ground_enemy_scene = ExtResource("7_ground_enemy")
+kamikaze_enemy_scene = ExtResource("9_kamikaze")
+powerup_carrier_scene = ExtResource("12_powerup_carrier")
+powerup_item_scene = ExtResource("13_powerup_item")
 final_max_enemies = 10
 
 [node name="Background" type="TextureRect" parent="." unique_id=176089468]
@@ -57,8 +69,35 @@ one_shot = true
 wait_time = 1.5
 one_shot = true
 
+[node name="PowerupSpawnTimer" type="Timer" parent="."]
+one_shot = true
+
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1551828944]
 position = Vector2(576, 324)
+
+[node name="GroundEnemyWarningSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("8_ground_warning")
+volume_db = -5.0
+
+[node name="GameplayMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("10_gameplay_music")
+volume_db = -12.0
+
+[node name="GameOverMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("11_game_over_music")
+volume_db = -10.0
+
+[node name="ExtraLifeSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("14_extra_life")
+volume_db = -4.0
+
+[node name="PowerupPickupSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("15_powerup_pickup")
+volume_db = -5.0
+
+[node name="ScreenBombSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("16_screen_bomb")
+volume_db = -3.0
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1433803769]
 
@@ -109,7 +148,7 @@ theme_override_colors/font_color = Color(0.678431, 0.811765, 0.933333, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 16
-text = "VIDA"
+text = "LIFE"
 
 [node name="HealthLabel" type="Label" parent="HUD/StatusPanel" unique_id=1629451783]
 offset_left = 198.0
@@ -131,7 +170,7 @@ theme_override_colors/font_color = Color(0.678431, 0.811765, 0.933333, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 16
-text = "BALAS"
+text = "AMMO"
 
 [node name="AmmoLabel" type="Label" parent="HUD/StatusPanel" unique_id=14755743]
 offset_left = 157.0
@@ -150,7 +189,19 @@ offset_top = 20.0
 offset_right = 1120.0
 offset_bottom = 70.0
 theme_override_font_sizes/font_size = 28
-text = "TIEMPO: 0.0"
+text = "TIME: 0.0"
+horizontal_alignment = 2
+
+[node name="ScoreLabel" type="Label" parent="HUD"]
+offset_left = 850.0
+offset_top = 58.0
+offset_right = 1120.0
+offset_bottom = 92.0
+theme_override_colors/font_color = Color(1, 0.823529, 0.294118, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 22
+text = "SCORE: 000000"
 horizontal_alignment = 2
 
 [node name="WaveLabel" type="Label" parent="HUD" unique_id=583794417]
@@ -163,7 +214,7 @@ theme_override_colors/font_color = Color(0.854902, 0.705882, 1, 1)
 theme_override_colors/font_outline_color = Color(0.0588235, 0.0196078, 0.117647, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 30
-text = "OLEADA 1"
+text = "WAVE 1"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -176,7 +227,7 @@ theme_override_colors/font_color = Color(0.737255, 0.85098, 1, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.027451, 0.0745098, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 16
-text = "A/D MOVER   SHIFT SALTAR   S AGACHARSE   W APUNTAR ARRIBA   ESPACIO DISPARAR"
+text = "A/D MOVE   SHIFT JUMP   S CROUCH   W AIM UP   SPACE FIRE"
 horizontal_alignment = 1
 
 [node name="GameOverOverlay" type="ColorRect" parent="HUD" unique_id=2003815479]
@@ -188,15 +239,49 @@ mouse_filter = 2
 
 [node name="GameOverLabel" type="Label" parent="HUD" unique_id=1470129904]
 visible = false
-offset_left = 326.0
-offset_top = 60.0
-offset_right = 858.0
-offset_bottom = 230.0
-theme_override_font_sizes/font_size = 40
+offset_left = 276.0
+offset_top = 38.0
+offset_right = 876.0
+offset_bottom = 215.0
+theme_override_font_sizes/font_size = 36
 text = "GAME OVER
-Pulsa R para reiniciar"
+SCORE: 000000
+TIME: 0.0 SECONDS"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="PowerupStatusLabel" type="Label" parent="HUD"]
+visible = false
+offset_left = 326.0
+offset_top = 18.0
+offset_right = 826.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0.266667, 0.866667, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 18
+text = "INF AMMO 15.0s"
+horizontal_alignment = 1
+
+[node name="PowerupMessageLabel" type="Label" parent="HUD"]
+visible = false
+offset_left = 276.0
+offset_top = 145.0
+offset_right = 876.0
+offset_bottom = 195.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 30
+text = "TRIPLE SHOT!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PowerupFlash" type="ColorRect" parent="HUD"]
+visible = false
+offset_right = 1152.0
+offset_bottom = 648.0
+mouse_filter = 2
+color = Color(1, 0.72, 0.25, 0)
 
 [node name="InitialsPrompt" type="Label" parent="HUD" unique_id=1277907958]
 visible = false
@@ -205,7 +290,7 @@ offset_top = 260.0
 offset_right = 826.0
 offset_bottom = 310.0
 theme_override_font_sizes/font_size = 26
-text = "INTRODUCE TUS INICIALES"
+text = "ENTER YOUR INITIALS"
 horizontal_alignment = 1
 
 [node name="InitialsInput" type="LineEdit" parent="HUD" unique_id=1802284164]
@@ -221,11 +306,26 @@ max_length = 3
 
 [node name="LeaderboardLabel" type="Label" parent="HUD" unique_id=499061605]
 visible = false
-offset_left = 326.0
-offset_top = 250.0
-offset_right = 826.0
-offset_bottom = 570.0
-theme_override_font_sizes/font_size = 25
+offset_left = 276.0
+offset_top = 230.0
+offset_right = 876.0
+offset_bottom = 535.0
+theme_override_font_sizes/font_size = 23
+horizontal_alignment = 1
+
+[node name="RestartLabel" type="Label" parent="HUD"]
+visible = false
+offset_left = 276.0
+offset_top = 570.0
+offset_right = 876.0
+offset_bottom = 615.0
+theme_override_colors/font_color = Color(1, 0.823529, 0.294118, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 22
+text = "PRESS R OR START TO RESTART"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [connection signal="ammo_changed" from="Player" to="." method="_on_player_ammo_changed"]
 [connection signal="died" from="Player" to="." method="_on_player_died"]

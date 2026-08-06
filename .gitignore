@@ -14,6 +14,24 @@ export_credentials.cfg
 # Working files and original source archives
 tmp/
 *.zip
+build/
+dist/
+
+# Source packs and macOS metadata are not needed by the game
+Sound FX Starter Pack Vol. 1/
+__MACOSX/
+**/._*
+
+# Local editor helper not enabled by this project
+addons/
+
+# Duplicate of the tracked handoff document in output/pdf/
+/traspaso_codex_supervivencia_estelar.pdf
+
+# Local prototype using a copyrighted Contra: Hard Corps sprite sheet
+Sega Genesis - Contra_ Hard Corps - Playable Characters - Sheena.png
+Sega Genesis - Contra_ Hard Corps - Playable Characters - Sheena.png.import
+assets/sprites/player/sheena_test/
 
 # Mono-specific ignores
 .mono/

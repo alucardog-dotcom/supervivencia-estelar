@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bspqyag21ss8n" path="res://scripts/enemy.gd" id="1_lpnxe"]
 [ext_resource type="PackedScene" uid="uid://bfaa2is3pnapq" path="res://scenes/enemy_bullet.tscn" id="2_48uji"]
 [ext_resource type="Texture2D" path="res://assets/sprites/enemies/alien_raider.png" id="3_s8mdy"]
+[ext_resource type="AudioStream" path="res://assets/audio/enemy_plasma_shot.wav" id="4_enemy_shot"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t3yyb"]
 size = Vector2(52, 52)
@@ -18,6 +19,7 @@ base_speed = 340.0
 speed_per_level = 40.0
 base_min_fire_interval = 0.35
 base_max_fire_interval = 0.75
+score_value = 250
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1996693979]
 texture_filter = 1
@@ -30,6 +32,10 @@ shape = SubResource("RectangleShape2D_t3yyb")
 position = Vector2(0, 40)
 
 [node name="FireTimer" type="Timer" parent="." unique_id=81259352]
+
+[node name="ShotSound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("4_enemy_shot")
+volume_db = -13.0
 
 [connection signal="area_entered" from="." to="." method="_on_area_entered"]
 [connection signal="timeout" from="FireTimer" to="." method="_on_fire_timer_timeout"]

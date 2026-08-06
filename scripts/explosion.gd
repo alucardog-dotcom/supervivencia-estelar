@@ -60,7 +60,7 @@ func _draw() -> void:
 
 	for index in range(particle_positions.size()):
 		var particle_size := 6.0 if index % 3 == 0 else 4.0
-		var position := particle_positions[index].snapped(
+		var particle_position := particle_positions[index].snapped(
 			Vector2(2.0, 2.0)
 		)
 		var color := particle_colors[index]
@@ -68,7 +68,7 @@ func _draw() -> void:
 
 		draw_rect(
 			Rect2(
-				position - Vector2.ONE * particle_size * 0.5,
+				particle_position - Vector2.ONE * particle_size * 0.5,
 				Vector2.ONE * particle_size
 			),
 			color

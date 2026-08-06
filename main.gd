@@ -2,35 +2,58 @@ extends Node2D
 
 const SCORE_PATH := "user://arcade_scores.cfg"
 const MAX_SCORES := 5
+const SURVIVAL_POINTS_PER_SECOND := 10
+const EXTRA_LIFE_SCORE_INTERVAL := 50000
+const MAX_PLAYER_HEALTH := 5
+const POWERUP_DURATION := 15.0
 
 @export var enemy_scene: PackedScene
 @export var aimed_enemy_scene: PackedScene
 @export var fast_enemy_scene: PackedScene
 @export var ground_enemy_scene: PackedScene
+@export var kamikaze_enemy_scene: PackedScene
+@export var powerup_carrier_scene: PackedScene
+@export var powerup_item_scene: PackedScene
 @export var initial_max_enemies: int = 3
 @export var final_max_enemies: int = 8
 @export var base_enemies_per_wave: int = 6
 @export var enemies_per_wave_growth: int = 2
 @export var wave_break_duration: float = 4.0
 @export var ground_enemy_start_wave: int = 3
+@export var kamikaze_start_wave: int = 4
+@export var starting_wave: int = 1
 
 @onready var enemy_spawn_timer: Timer = $EnemySpawnTimer
 @onready var wave_break_timer: Timer = $WaveBreakTimer
 @onready var wave_message_timer: Timer = $WaveMessageTimer
+@onready var powerup_spawn_timer: Timer = $PowerupSpawnTimer
 @onready var camera: Camera2D = $Camera2D
 @onready var status_panel: Panel = $HUD/StatusPanel
 @onready var health_label: Label = $HUD/StatusPanel/HealthLabel
 @onready var ammo_label: Label = $HUD/StatusPanel/AmmoLabel
 @onready var time_label: Label = $HUD/TimeLabel
+@onready var score_label: Label = $HUD/ScoreLabel
 @onready var wave_label: Label = $HUD/WaveLabel
 @onready var controls_label: Label = $HUD/ControlsLabel
+@onready var powerup_status_label: Label = $HUD/PowerupStatusLabel
+@onready var powerup_message_label: Label = $HUD/PowerupMessageLabel
+@onready var powerup_flash: ColorRect = $HUD/PowerupFlash
 @onready var game_over_label: Label = $HUD/GameOverLabel
+@onready var restart_label: Label = $HUD/RestartLabel
 @onready var initials_prompt: Label = $HUD/InitialsPrompt
 @onready var initials_input: LineEdit = $HUD/InitialsInput
 @onready var leaderboard_label: Label = $HUD/LeaderboardLabel
 @onready var game_over_overlay: ColorRect = $HUD/GameOverOverlay
+@onready var ground_warning_sound: AudioStreamPlayer = $GroundEnemyWarningSound
+@onready var gameplay_music: AudioStreamPlayer = $GameplayMusic
+@onready var game_over_music: AudioStreamPlayer = $GameOverMusic
+@onready var extra_life_sound: AudioStreamPlayer = $ExtraLifeSound
+@onready var powerup_pickup_sound: AudioStreamPlayer = $PowerupPickupSound
+@onready var screen_bomb_sound: AudioStreamPlayer = $ScreenBombSound
 
 var elapsed_time := 0.0
+var current_score := 0
+var next_survival_score_time := 1.0
 var difficulty_level := 0
 var max_enemies: int
 var is_game_over := false
@@ -43,15 +66,21 @@ var wave_defeated := 0
 var wave_active := false
 var camera_shake_time := 0.0
 var camera_shake_strength := 0.0
+var next_extra_life_score := EXTRA_LIFE_SCORE_INTERVAL
+var powerup_message_tween: Tween
 
 
 func _ready() -> void:
 	game_over_label.hide()
+	restart_label.hide()
 	initials_prompt.hide()
 	initials_input.hide()
 	leaderboard_label.hide()
 	game_over_overlay.hide()
 	wave_label.hide()
+	powerup_status_label.hide()
+	powerup_message_label.hide()
+	powerup_flash.hide()
 	_on_player_health_changed(int($Player.get("health")))
 	_on_player_ammo_changed(
 		int($Player.get("current_ammo")),
@@ -59,7 +88,10 @@ func _ready() -> void:
 	)
 
 	max_enemies = initial_max_enemies
+	wave_number = maxi(1, starting_wave)
+	start_gameplay_music()
 	load_leaderboard()
+	update_score_label()
 
 	if not enemy_spawn_timer.timeout.is_connected(
 		_on_enemy_spawn_timer_timeout
@@ -82,6 +114,13 @@ func _ready() -> void:
 			_on_wave_message_timer_timeout
 		)
 
+	if not powerup_spawn_timer.timeout.is_connected(
+		_on_powerup_spawn_timer_timeout
+	):
+		powerup_spawn_timer.timeout.connect(
+			_on_powerup_spawn_timer_timeout
+		)
+
 	if not initials_input.text_submitted.is_connected(
 		_on_initials_input_text_submitted
 	):
@@ -90,14 +129,15 @@ func _ready() -> void:
 		)
 
 	start_wave()
+	schedule_powerup_spawn(true)
 	show_controls_temporarily()
 
 
 func show_controls_temporarily() -> void:
 	if not Input.get_connected_joypads().is_empty():
 		controls_label.text = (
-			"STICK/CRUCETA MOVER Y APUNTAR   "
-			+ "A SALTAR   X DISPARAR"
+			"STICK/D-PAD MOVE AND AIM   "
+			+ "A JUMP   X FIRE"
 		)
 
 	controls_label.show()
@@ -109,6 +149,44 @@ func show_controls_temporarily() -> void:
 	tween.tween_callback(controls_label.hide)
 
 
+func start_gameplay_music() -> void:
+	configure_music_loop(gameplay_music)
+	gameplay_music.play()
+
+
+func configure_music_loop(player: AudioStreamPlayer) -> void:
+	var wav_stream := player.stream as AudioStreamWAV
+
+	if wav_stream != null:
+		wav_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav_stream.loop_begin = 0
+		wav_stream.loop_end = int(
+			round(wav_stream.get_length() * wav_stream.mix_rate)
+		)
+
+
+
+func start_game_over_music() -> void:
+	configure_music_loop(game_over_music)
+	game_over_music.volume_db = -30.0
+	game_over_music.play()
+
+	var music_transition := create_tween().set_parallel(true)
+	music_transition.tween_property(
+		gameplay_music,
+		"volume_db",
+		-35.0,
+		0.8
+	)
+	music_transition.tween_property(
+		game_over_music,
+		"volume_db",
+		-10.0,
+		0.8
+	)
+	music_transition.chain().tween_callback(gameplay_music.stop)
+
+
 func _process(delta: float) -> void:
 	update_camera_shake(delta)
 
@@ -116,7 +194,136 @@ func _process(delta: float) -> void:
 		return
 
 	elapsed_time += delta
-	time_label.text = "TIEMPO: %.1f" % elapsed_time
+	time_label.text = "TIME: %.1f" % elapsed_time
+	update_powerup_status()
+
+	while elapsed_time >= next_survival_score_time:
+		add_score(SURVIVAL_POINTS_PER_SECOND)
+		next_survival_score_time += 1.0
+
+
+func schedule_powerup_spawn(first_spawn := false) -> void:
+	powerup_spawn_timer.wait_time = (
+		randf_range(12.0, 18.0)
+		if first_spawn
+		else randf_range(22.0, 35.0)
+	)
+	powerup_spawn_timer.start()
+
+
+func _on_powerup_spawn_timer_timeout() -> void:
+	if is_game_over:
+		return
+
+	if (
+		powerup_carrier_scene != null
+		and get_tree().get_nodes_in_group("powerup_carriers").is_empty()
+	):
+		var carrier := powerup_carrier_scene.instantiate() as Area2D
+		carrier.destroyed.connect(_on_powerup_carrier_destroyed)
+		add_child(carrier)
+		var side := -1 if randf() < 0.5 else 1
+		carrier.call("spawn_from_side", side, randf_range(125.0, 210.0))
+
+	schedule_powerup_spawn()
+
+
+func _on_powerup_carrier_destroyed(drop_position: Vector2) -> void:
+	if powerup_item_scene == null or is_game_over:
+		return
+
+	var roll := randf()
+	var selected_type := PowerupItem.PowerupType.BOMB
+
+	if roll < 0.40:
+		selected_type = PowerupItem.PowerupType.UNLIMITED_AMMO
+	elif roll < 0.75:
+		selected_type = PowerupItem.PowerupType.TRIPLE_SHOT
+
+	var item := powerup_item_scene.instantiate() as PowerupItem
+	item.collected.connect(_on_powerup_collected)
+	add_child(item)
+	item.global_position = drop_position
+	item.setup(selected_type)
+
+
+func _on_powerup_collected(powerup_type: int, player_node: Node) -> void:
+	if is_game_over or not is_instance_valid(player_node):
+		return
+
+	powerup_pickup_sound.play()
+
+	match powerup_type:
+		PowerupItem.PowerupType.BOMB:
+			show_powerup_message("SCREEN BOMB!", Color("ff9d32"))
+			call_deferred("perform_screen_bomb")
+		PowerupItem.PowerupType.UNLIMITED_AMMO:
+			player_node.call("activate_unlimited_ammo", POWERUP_DURATION)
+			show_powerup_message("UNLIMITED AMMO!", Color("43ddff"))
+		PowerupItem.PowerupType.TRIPLE_SHOT:
+			player_node.call("activate_triple_shot", POWERUP_DURATION)
+			show_powerup_message("TRIPLE SHOT!", Color("ffb52e"))
+
+
+func perform_screen_bomb() -> void:
+	screen_bomb_sound.play()
+	shake_camera(13.0, 0.45)
+
+	for projectile in get_tree().get_nodes_in_group("enemy_projectiles"):
+		if is_instance_valid(projectile):
+			projectile.queue_free()
+
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("destroy"):
+			enemy.call("destroy", true)
+
+	powerup_flash.color = Color(1.0, 0.72, 0.25, 0.9)
+	powerup_flash.show()
+	var flash_tween := create_tween()
+	flash_tween.tween_property(powerup_flash, "color:a", 0.0, 0.35)
+	flash_tween.tween_callback(powerup_flash.hide)
+
+
+func update_powerup_status() -> void:
+	var player := get_tree().get_first_node_in_group("player")
+
+	if not is_instance_valid(player):
+		powerup_status_label.hide()
+		return
+
+	var status_parts: Array[String] = []
+	var unlimited_time := float(player.call("get_unlimited_ammo_time_left"))
+	var triple_time := float(player.call("get_triple_shot_time_left"))
+
+	if unlimited_time > 0.0:
+		status_parts.append("INF AMMO %.1fs" % unlimited_time)
+	if triple_time > 0.0:
+		status_parts.append("TRIPLE SHOT %.1fs" % triple_time)
+
+	if status_parts.is_empty():
+		powerup_status_label.hide()
+	else:
+		powerup_status_label.text = "   |   ".join(status_parts)
+		powerup_status_label.show()
+
+
+func show_powerup_message(message: String, color: Color) -> void:
+	if powerup_message_tween != null and powerup_message_tween.is_valid():
+		powerup_message_tween.kill()
+
+	powerup_message_label.text = message
+	powerup_message_label.add_theme_color_override("font_color", color)
+	powerup_message_label.modulate.a = 1.0
+	powerup_message_label.show()
+	powerup_message_tween = create_tween()
+	powerup_message_tween.tween_interval(1.0)
+	powerup_message_tween.tween_property(
+		powerup_message_label,
+		"modulate:a",
+		0.0,
+		0.35
+	)
+	powerup_message_tween.tween_callback(powerup_message_label.hide)
 
 
 func _on_enemy_spawn_timer_timeout() -> void:
@@ -137,7 +344,7 @@ func _on_enemy_spawn_timer_timeout() -> void:
 	var selected_enemy_scene := choose_enemy_scene()
 
 	if selected_enemy_scene == null:
-		push_error("Falta asignar una escena enemiga en Main.")
+		push_error("An enemy scene is not assigned in Main.")
 		return
 
 	var enemy := selected_enemy_scene.instantiate() as Area2D
@@ -165,6 +372,19 @@ func _on_enemy_spawn_timer_timeout() -> void:
 
 
 func choose_enemy_scene() -> PackedScene:
+	var kamikaze_probability := clampf(
+		0.08 + (wave_number - kamikaze_start_wave) * 0.02,
+		0.08,
+		0.18
+	)
+
+	if (
+		wave_number >= kamikaze_start_wave
+		and kamikaze_enemy_scene != null
+		and randf() < kamikaze_probability
+	):
+		return kamikaze_enemy_scene
+
 	var ground_probability := clampf(
 		0.2 + (wave_number - ground_enemy_start_wave) * 0.06,
 		0.2,
@@ -196,6 +416,7 @@ func choose_enemy_scene() -> PackedScene:
 
 
 func show_side_warning(side: int) -> void:
+	ground_warning_sound.play()
 	var warning := Label.new()
 	warning.text = ">>" if side < 0 else "<<"
 	warning.position = Vector2(
@@ -243,21 +464,22 @@ func start_wave() -> void:
 		0.7
 	)
 
-	show_wave_message("OLEADA %d" % wave_number)
+	show_wave_message("WAVE %d" % wave_number)
 	enemy_spawn_timer.start()
 
 	print(
-		"Oleada: ",
+		"Wave: ",
 		wave_number,
-		" | Enemigos: ",
+		" | Enemies: ",
 		wave_target
 	)
 
 
-func _on_enemy_destroyed() -> void:
+func _on_enemy_destroyed(enemy_score: int) -> void:
 	if is_game_over or not wave_active:
 		return
 
+	add_score(enemy_score)
 	wave_defeated += 1
 
 	if wave_defeated >= wave_target:
@@ -267,7 +489,7 @@ func _on_enemy_destroyed() -> void:
 func finish_wave() -> void:
 	wave_active = false
 	enemy_spawn_timer.stop()
-	show_wave_message("OLEADA COMPLETADA")
+	show_wave_message("WAVE CLEARED")
 	wave_break_timer.wait_time = wave_break_duration
 	wave_break_timer.start()
 
@@ -322,27 +544,62 @@ func _on_player_ammo_changed(
 	current_ammo: int,
 	magazine_size: int
 ) -> void:
+	if current_ammo < 0:
+		ammo_label.text = "INF / INF"
+		return
+
 	ammo_label.text = "%02d / %02d" % [
 		current_ammo,
 		magazine_size
 	]
 
 
+func add_score(points: int) -> void:
+	if points <= 0:
+		return
+
+	current_score += points
+	update_score_label()
+
+	while current_score >= next_extra_life_score:
+		grant_extra_life()
+		next_extra_life_score += EXTRA_LIFE_SCORE_INTERVAL
+
+
+func grant_extra_life() -> void:
+	var player := get_tree().get_first_node_in_group("player")
+
+	if not is_instance_valid(player):
+		return
+
+	if bool(player.call("give_extra_life", MAX_PLAYER_HEALTH)):
+		extra_life_sound.play()
+		show_powerup_message("EXTRA LIFE!", Color("ff4b4b"))
+
+
+func update_score_label() -> void:
+	score_label.text = "SCORE: %06d" % current_score
+
+
 func _on_player_died() -> void:
 	is_game_over = true
 	stop_gameplay()
+	start_game_over_music()
 	status_panel.hide()
 	time_label.hide()
+	score_label.hide()
 	wave_label.hide()
+	powerup_status_label.hide()
 	game_over_overlay.show()
 
 	game_over_label.text = (
 		"GAME OVER\n"
-		+ "Tiempo: %.1f segundos" % elapsed_time
+		+ "SCORE: %06d\n" % current_score
+		+ "TIME: %.1f SECONDS" % elapsed_time
 	)
 	game_over_label.show()
 
-	if score_qualifies(elapsed_time):
+	if score_qualifies(current_score):
 		show_initials_input()
 	else:
 		show_leaderboard()
@@ -352,26 +609,44 @@ func stop_gameplay() -> void:
 	enemy_spawn_timer.stop()
 	wave_break_timer.stop()
 	wave_message_timer.stop()
+	powerup_spawn_timer.stop()
 
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		enemy.process_mode = Node.PROCESS_MODE_DISABLED
+		enemy.call_deferred(
+			"set_process_mode",
+			Node.PROCESS_MODE_DISABLED
+		)
 
 	for projectile in get_tree().get_nodes_in_group("projectiles"):
-		projectile.process_mode = Node.PROCESS_MODE_DISABLED
+		projectile.call_deferred(
+			"set_process_mode",
+			Node.PROCESS_MODE_DISABLED
+		)
+
+	for powerup_group in ["powerup_carriers", "powerup_items"]:
+		for powerup in get_tree().get_nodes_in_group(powerup_group):
+			powerup.call_deferred(
+				"set_process_mode",
+				Node.PROCESS_MODE_DISABLED
+			)
 
 
-func score_qualifies(score: float) -> bool:
+func score_qualifies(score_value: int) -> bool:
 	if leaderboard.size() < MAX_SCORES:
 		return true
 
 	var last_entry: Dictionary = leaderboard[MAX_SCORES - 1]
-	var last_score := float(last_entry.get("time", 0.0))
+	var last_score := int(last_entry.get("score", 0))
 
-	return score > last_score
+	if score_value == last_score:
+		return elapsed_time > float(last_entry.get("time", 0.0))
+
+	return score_value > last_score
 
 
 func show_initials_input() -> void:
 	waiting_for_initials = true
+	restart_label.hide()
 
 	initials_prompt.show()
 	initials_input.show()
@@ -386,7 +661,7 @@ func _on_initials_input_text_submitted(new_text: String) -> void:
 	var initials := new_text.strip_edges().to_upper()
 
 	if initials.is_empty():
-		initials_input.placeholder_text = "ESCRIBE ALGO"
+		initials_input.placeholder_text = "TYPE SOMETHING"
 		return
 
 	while initials.length() < 3:
@@ -396,6 +671,7 @@ func _on_initials_input_text_submitted(new_text: String) -> void:
 
 	leaderboard.append({
 		"initials": initials,
+		"score": current_score,
 		"time": elapsed_time
 	})
 
@@ -415,31 +691,37 @@ func _on_initials_input_text_submitted(new_text: String) -> void:
 
 
 func sort_scores(first_entry: Dictionary, second_entry: Dictionary) -> bool:
-	return (
-		float(first_entry.get("time", 0.0))
-		> float(second_entry.get("time", 0.0))
-	)
+	var first_score := int(first_entry.get("score", 0))
+	var second_score := int(second_entry.get("score", 0))
+
+	if first_score == second_score:
+		return (
+			float(first_entry.get("time", 0.0))
+			> float(second_entry.get("time", 0.0))
+		)
+
+	return first_score > second_score
 
 
 func show_leaderboard() -> void:
-	var ranking_text := "CLASIFICACIÓN\n\n"
+	var ranking_text := "HIGH SCORES\n\n"
 
 	if leaderboard.is_empty():
-		ranking_text += "SIN PUNTUACIONES\n"
+		ranking_text += "NO SCORES YET\n"
 	else:
 		for index in range(leaderboard.size()):
 			var entry: Dictionary = leaderboard[index]
 
-			ranking_text += "%d. %s    %.1f s\n" % [
+			ranking_text += "%d. %s   %06d   %.1f s\n" % [
 				index + 1,
 				str(entry.get("initials", "---")),
+				int(entry.get("score", 0)),
 				float(entry.get("time", 0.0))
 			]
 
 	leaderboard_label.text = ranking_text
 	leaderboard_label.show()
-
-	game_over_label.text += "\nPulsa R para reiniciar"
+	restart_label.show()
 
 
 func load_leaderboard() -> void:
@@ -457,6 +739,13 @@ func load_leaderboard() -> void:
 
 	if loaded_entries is Array:
 		leaderboard = loaded_entries
+
+		for entry in leaderboard:
+			if entry is Dictionary and not entry.has("score"):
+				entry["score"] = int(
+					round(float(entry.get("time", 0.0)) * 10.0)
+				)
+
 		leaderboard.sort_custom(sort_scores)
 
 
@@ -473,7 +762,7 @@ func save_leaderboard() -> void:
 
 	if save_error != OK:
 		push_error(
-			"No se pudo guardar la clasificación."
+			"The high-score table could not be saved."
 		)
 
 

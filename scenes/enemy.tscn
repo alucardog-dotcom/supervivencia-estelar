@@ -3,6 +3,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/enemies/alien_interceptor.png" id="1_7p1mj"]
 [ext_resource type="Script" uid="uid://bspqyag21ss8n" path="res://scripts/enemy.gd" id="1_md0e3"]
 [ext_resource type="PackedScene" uid="uid://bfaa2is3pnapq" path="res://scenes/enemy_bullet.tscn" id="3_4ra3w"]
+[ext_resource type="AudioStream" path="res://assets/audio/enemy_plasma_shot.wav" id="4_enemy_shot"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t3yyb"]
 size = Vector2(52, 52)
@@ -24,6 +25,10 @@ shape = SubResource("RectangleShape2D_t3yyb")
 position = Vector2(0, 40)
 
 [node name="FireTimer" type="Timer" parent="." unique_id=81259352]
+
+[node name="ShotSound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("4_enemy_shot")
+volume_db = -12.0
 
 [connection signal="area_entered" from="." to="." method="_on_area_entered"]
 [connection signal="timeout" from="FireTimer" to="." method="_on_fire_timer_timeout"]

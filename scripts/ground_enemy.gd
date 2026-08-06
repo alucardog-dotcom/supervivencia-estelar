@@ -1,6 +1,6 @@
 extends Area2D
 
-signal destroyed
+signal destroyed(score_value: int)
 
 const EXPLOSION_SCENE := preload("res://scenes/explosion.tscn")
 
@@ -9,9 +9,11 @@ const EXPLOSION_SCENE := preload("res://scenes/explosion.tscn")
 @export var speed_per_level: float = 8.0
 @export var stop_distance: float = 250.0
 @export var base_fire_interval: float = 2.4
+@export var score_value: int = 200
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var fire_timer: Timer = $FireTimer
+@onready var shot_sound: AudioStreamPlayer2D = $ShotSound
 
 var speed := 105.0
 var direction := 1.0
@@ -95,15 +97,16 @@ func shoot() -> void:
 		height_offset
 	)
 	bullet.setup(Vector2(shot_direction, 0.0))
+	shot_sound.play()
 	start_fire_timer()
 
 
-func destroy() -> void:
+func destroy(award_points := true) -> void:
 	if is_destroying:
 		return
 
 	is_destroying = true
-	destroyed.emit()
+	destroyed.emit(score_value if award_points else 0)
 
 	var explosion := EXPLOSION_SCENE.instantiate() as Node2D
 	get_tree().current_scene.add_child(explosion)
@@ -124,4 +127,4 @@ func _on_area_entered(area: Area2D) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("take_damage"):
 		body.take_damage(1)
-		destroy()
+		destroy(false)

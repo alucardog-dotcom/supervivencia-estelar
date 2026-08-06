@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/kamikaze_enemy.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/ground/kamikaze_enemy.png" id="2_texture"]
+[ext_resource type="AudioStream" path="res://assets/audio/kamikaze_scream.wav" id="3_scream"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kamikaze"]
+size = Vector2(82, 86)
+
+[node name="KamikazeEnemy" type="Area2D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_texture")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 5)
+shape = SubResource("RectangleShape2D_kamikaze")
+
+[node name="ScreamSound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("3_scream")
+volume_db = -5.0
+max_distance = 1500.0
+
+[connection signal="area_entered" from="." to="." method="_on_area_entered"]
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]
