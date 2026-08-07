@@ -7,12 +7,14 @@ enum PowerupType {
 	BOMB,
 	UNLIMITED_AMMO,
 	TRIPLE_SHOT,
+	INVULNERABLE,
 }
 
 const TEXTURES := {
 	PowerupType.BOMB: preload("res://assets/sprites/powerups/bomb.png"),
 	PowerupType.UNLIMITED_AMMO: preload("res://assets/sprites/powerups/unlimited_ammo.png"),
 	PowerupType.TRIPLE_SHOT: preload("res://assets/sprites/powerups/triple_shot.png"),
+	PowerupType.INVULNERABLE: preload("res://assets/sprites/powerups/invulnerable.png"),
 }
 
 @export var fall_speed := 105.0
@@ -27,6 +29,7 @@ var ground_center_y := 0.0
 
 func _ready() -> void:
 	add_to_group("powerup_items")
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	apply_visual()
 
 

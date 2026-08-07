@@ -26,8 +26,8 @@ signal ammo_changed(current_ammo: int, magazine_size: int)
 @export var bullet_scene: PackedScene
 @export var max_health: int = 3
 @export var invulnerability_time: float = 1.0
-@export var magazine_size: int = 20
-@export var reload_duration: float = 3.5
+@export var magazine_size: int = 30
+@export var reload_duration: float = 2.5
 
 @onready var muzzle: Marker2D = $Muzzle
 @onready var fire_timer: Timer = $FireTimer
@@ -39,6 +39,7 @@ signal ammo_changed(current_ammo: int, magazine_size: int)
 @onready var reload_timer: Timer = $ReloadTimer
 @onready var unlimited_ammo_timer: Timer = $UnlimitedAmmoTimer
 @onready var triple_shot_timer: Timer = $TripleShotTimer
+@onready var powerup_invulnerability_timer: Timer = $PowerupInvulnerabilityTimer
 @onready var reload_bar: ProgressBar = $ReloadBar
 @onready var reload_label: Label = $ReloadLabel
 @onready var shot_sound: AudioStreamPlayer2D = $ShotSound
@@ -55,10 +56,15 @@ var floor_y := 0.0
 var aim_direction := Vector2.RIGHT
 var unlimited_ammo_active := false
 var triple_shot_active := false
+var powerup_invulnerable_active := false
+var bullet_speed_multiplier := 1.0
+var bullet_size_multiplier := 1.0
+var powerup_duration_multiplier := 1.0
 
 
 func _ready() -> void:
 	add_to_group("player")
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	setup_sheena_test_frames()
 	health = max_health
 	floor_y = global_position.y
@@ -149,6 +155,8 @@ func _physics_process(delta: float) -> void:
 	if is_reloading:
 		reload_bar.value = reload_duration - reload_timer.time_left
 
+	update_powerup_visual()
+
 
 func is_grounded() -> bool:
 	return global_position.y >= floor_y - 0.5 and velocity.y >= 0.0
@@ -190,7 +198,7 @@ func update_aim_direction(
 		muzzle.rotation = 0.0
 	elif is_crouching:
 		aim_direction = Vector2(facing_direction, 0.0)
-		muzzle.position = Vector2(45.0 * facing_direction, 4.0)
+		muzzle.position = Vector2(45.0 * facing_direction, 37.0)
 		muzzle.rotation = PI * 0.5 * facing_direction
 	else:
 		aim_direction = Vector2(facing_direction, 0.0)
@@ -255,6 +263,8 @@ func spawn_bullet(direction: Vector2) -> void:
 	var bullet := bullet_scene.instantiate() as Area2D
 	get_tree().current_scene.add_child(bullet)
 	bullet.global_position = muzzle.global_position
+	bullet.set("speed", float(bullet.get("speed")) * bullet_speed_multiplier)
+	bullet.scale = Vector2.ONE * bullet_size_multiplier
 
 	if bullet.has_method("setup"):
 		bullet.call("setup", direction)
@@ -272,7 +282,7 @@ func start_reload() -> void:
 
 
 func take_damage(amount: int) -> void:
-	if is_invulnerable:
+	if is_invulnerable or powerup_invulnerable_active:
 		return
 
 	hurt_sound.play()
@@ -293,8 +303,7 @@ func take_damage(amount: int) -> void:
 		return
 
 	is_invulnerable = true
-	modulate.a = 0.5
-	invulnerability_timer.start()
+	invulnerability_timer.start(invulnerability_time)
 
 
 func give_extra_life(maximum_health: int) -> bool:
@@ -313,13 +322,20 @@ func activate_unlimited_ammo(duration: float) -> void:
 	reload_bar.hide()
 	reload_label.hide()
 	current_ammo = magazine_size
-	unlimited_ammo_timer.start(duration)
+	unlimited_ammo_timer.start(duration * powerup_duration_multiplier)
 	ammo_changed.emit(-1, -1)
 
 
 func activate_triple_shot(duration: float) -> void:
 	triple_shot_active = true
-	triple_shot_timer.start(duration)
+	triple_shot_timer.start(duration * powerup_duration_multiplier)
+
+
+func activate_powerup_invulnerability(duration: float) -> void:
+	powerup_invulnerable_active = true
+	powerup_invulnerability_timer.start(
+		duration * powerup_duration_multiplier
+	)
 
 
 func get_unlimited_ammo_time_left() -> float:
@@ -330,6 +346,93 @@ func get_triple_shot_time_left() -> float:
 	return triple_shot_timer.time_left if triple_shot_active else 0.0
 
 
+func get_powerup_invulnerability_time_left() -> float:
+	return (
+		powerup_invulnerability_timer.time_left
+		if powerup_invulnerable_active
+		else 0.0
+	)
+
+
+func update_powerup_visual() -> void:
+	if powerup_invulnerable_active:
+		var pulse := 0.72 + sin(Time.get_ticks_msec() * 0.012) * 0.18
+		animated_sprite.modulate = Color(0.48, 0.9, 1.0, pulse)
+	elif is_invulnerable:
+		animated_sprite.modulate = Color(1.0, 1.0, 1.0, 0.45)
+	else:
+		animated_sprite.modulate = Color.WHITE
+
+
+func can_apply_upgrade(upgrade_id: String) -> bool:
+	match upgrade_id:
+		"reload_speed":
+			return reload_duration > 1.21
+		"bullet_speed":
+			return bullet_speed_multiplier < 1.99
+		"magazine_size":
+			return magazine_size < 60
+		"bullet_size":
+			return bullet_size_multiplier < 1.29
+		"move_speed":
+			return speed < 431.0
+		"fire_rate":
+			return fire_timer.wait_time > 0.111
+		"powerup_duration":
+			return powerup_duration_multiplier < 1.99
+		"recovery_window":
+			return invulnerability_time < 1.99
+		"jump_boost":
+			return jump_velocity > -899.0
+		"field_repair":
+			return health < 5
+
+	return false
+
+
+func apply_upgrade(upgrade_id: String) -> bool:
+	if not can_apply_upgrade(upgrade_id):
+		return false
+
+	match upgrade_id:
+		"reload_speed":
+			reload_duration = maxf(1.2, reload_duration * 0.90)
+			reload_timer.wait_time = reload_duration
+			reload_bar.max_value = reload_duration
+		"bullet_speed":
+			bullet_speed_multiplier = minf(
+				2.0,
+				bullet_speed_multiplier * 1.10
+			)
+		"magazine_size":
+			magazine_size = mini(60, ceili(magazine_size * 1.10))
+			current_ammo = magazine_size
+			ammo_changed.emit(current_ammo, magazine_size)
+		"bullet_size":
+			bullet_size_multiplier = minf(
+				1.30,
+				bullet_size_multiplier * 1.03
+			)
+		"move_speed":
+			speed = minf(432.0, speed * 1.05)
+		"fire_rate":
+			fire_timer.wait_time = maxf(0.11, fire_timer.wait_time * 0.95)
+		"powerup_duration":
+			powerup_duration_multiplier = minf(
+				2.0,
+				powerup_duration_multiplier * 1.10
+			)
+		"recovery_window":
+			invulnerability_time = minf(2.0, invulnerability_time * 1.10)
+			invulnerability_timer.wait_time = invulnerability_time
+		"jump_boost":
+			jump_velocity = maxf(-900.0, jump_velocity * 1.05)
+		"field_repair":
+			return give_extra_life(5)
+
+	return true
+
+
 func die() -> void:
 	died.emit()
 	queue_free()
@@ -337,7 +440,6 @@ func die() -> void:
 
 func _on_invulnerability_timer_timeout() -> void:
 	is_invulnerable = false
-	modulate.a = 1.0
 
 
 func _on_muzzle_flash_timer_timeout() -> void:
@@ -359,3 +461,7 @@ func _on_unlimited_ammo_timer_timeout() -> void:
 
 func _on_triple_shot_timer_timeout() -> void:
 	triple_shot_active = false
+
+
+func _on_powerup_invulnerability_timer_timeout() -> void:
+	powerup_invulnerable_active = false

@@ -24,6 +24,7 @@ var bob_time := 0.0
 
 func _ready() -> void:
 	add_to_group("enemies")
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	fire_timer.timeout.connect(shoot)
 	start_fire_timer()
 

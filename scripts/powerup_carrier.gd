@@ -14,6 +14,7 @@ var is_destroying := false
 
 func _ready() -> void:
 	add_to_group("powerup_carriers")
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 
 
 func spawn_from_side(side: int, spawn_y: float) -> void:

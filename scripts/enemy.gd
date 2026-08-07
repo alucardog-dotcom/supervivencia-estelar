@@ -41,6 +41,7 @@ var is_destroying := false
 
 func _ready() -> void:
 	add_to_group("enemies")
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 
 	if speed <= 0.0:
 		apply_difficulty(0)

@@ -168,7 +168,7 @@ offset_top = -84.0
 offset_right = 50.0
 offset_bottom = -64.0
 mouse_filter = 2
-max_value = 3.5
+max_value = 2.5
 show_percentage = false
 
 [node name="ReloadLabel" type="Label" parent="."]
@@ -218,13 +218,16 @@ wait_time = 0.06
 one_shot = true
 
 [node name="ReloadTimer" type="Timer" parent="."]
-wait_time = 3.5
+wait_time = 2.5
 one_shot = true
 
 [node name="UnlimitedAmmoTimer" type="Timer" parent="."]
 one_shot = true
 
 [node name="TripleShotTimer" type="Timer" parent="."]
+one_shot = true
+
+[node name="PowerupInvulnerabilityTimer" type="Timer" parent="."]
 one_shot = true
 
 [node name="ShotSound" type="AudioStreamPlayer2D" parent="."]
@@ -243,3 +246,4 @@ one_shot = true
 [connection signal="timeout" from="ReloadTimer" to="." method="_on_reload_timer_timeout"]
 [connection signal="timeout" from="UnlimitedAmmoTimer" to="." method="_on_unlimited_ammo_timer_timeout"]
 [connection signal="timeout" from="TripleShotTimer" to="." method="_on_triple_shot_timer_timeout"]
+[connection signal="timeout" from="PowerupInvulnerabilityTimer" to="." method="_on_powerup_invulnerability_timer_timeout"]

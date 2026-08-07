@@ -10,6 +10,7 @@ var particle_colors: Array[Color] = []
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	var colors := [
 		Color("fff0a0"),
 		Color("ff9d35"),

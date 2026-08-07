@@ -6,17 +6,18 @@
 [ext_resource type="PackedScene" uid="uid://cei3sm53hrusv" path="res://scenes/aimed_enemy.tscn" id="3_jyhfs"]
 [ext_resource type="PackedScene" uid="uid://b2yy8iynfxevu" path="res://scenes/fast_enemy.tscn" id="4_tbgi4"]
 [ext_resource type="Texture2D" uid="uid://dh3p1kccvvqlw" path="res://assets/backgrounds/earth_last_stand_platform_pixel.png" id="5_background"]
-[ext_resource type="Texture2D" path="res://assets/ui/red_commando_portrait_exact.png" id="6_portrait"]
+[ext_resource type="Texture2D" uid="uid://dujimm3saj7hl" path="res://assets/ui/red_commando_portrait_exact.png" id="6_portrait"]
 [ext_resource type="PackedScene" path="res://scenes/ground_enemy.tscn" id="7_ground_enemy"]
-[ext_resource type="AudioStream" path="res://assets/audio/ground_enemy_warning.wav" id="8_ground_warning"]
+[ext_resource type="AudioStream" uid="uid://8e3q2obpo8p0" path="res://assets/audio/ground_enemy_warning.wav" id="8_ground_warning"]
 [ext_resource type="PackedScene" path="res://scenes/kamikaze_enemy.tscn" id="9_kamikaze"]
-[ext_resource type="AudioStream" path="res://assets/audio/dark_boss_theme.wav" id="10_gameplay_music"]
-[ext_resource type="AudioStream" path="res://assets/audio/game_over_lament.wav" id="11_game_over_music"]
+[ext_resource type="AudioStream" uid="uid://dbcwdhsul0s7y" path="res://assets/audio/dark_boss_theme.wav" id="10_gameplay_music"]
+[ext_resource type="AudioStream" uid="uid://pg8sht3f7cgp" path="res://assets/audio/game_over_lament.wav" id="11_game_over_music"]
 [ext_resource type="PackedScene" path="res://scenes/powerup_carrier.tscn" id="12_powerup_carrier"]
 [ext_resource type="PackedScene" path="res://scenes/powerup_item.tscn" id="13_powerup_item"]
-[ext_resource type="AudioStream" path="res://assets/audio/extra_life.wav" id="14_extra_life"]
-[ext_resource type="AudioStream" path="res://assets/audio/powerup_pickup.wav" id="15_powerup_pickup"]
-[ext_resource type="AudioStream" path="res://assets/audio/screen_bomb.wav" id="16_screen_bomb"]
+[ext_resource type="AudioStream" uid="uid://c8arvi6dy74x7" path="res://assets/audio/extra_life.wav" id="14_extra_life"]
+[ext_resource type="AudioStream" uid="uid://cflt7nne0p5mm" path="res://assets/audio/powerup_pickup.wav" id="15_powerup_pickup"]
+[ext_resource type="AudioStream" uid="uid://cpqfewqhf252o" path="res://assets/audio/screen_bomb.wav" id="16_screen_bomb"]
+[ext_resource type="AudioStream" uid="uid://dgkdgdxr6ahyf" path="res://assets/audio/invulnerability.wav" id="17_invulnerability"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
 bg_color = Color(0.0196078, 0.0352941, 0.0784314, 0.94)
@@ -69,39 +70,43 @@ one_shot = true
 wait_time = 1.5
 one_shot = true
 
-[node name="PowerupSpawnTimer" type="Timer" parent="."]
+[node name="PowerupSpawnTimer" type="Timer" parent="." unique_id=1963080276]
 one_shot = true
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1551828944]
 position = Vector2(576, 324)
 
-[node name="GroundEnemyWarningSound" type="AudioStreamPlayer" parent="."]
+[node name="GroundEnemyWarningSound" type="AudioStreamPlayer" parent="." unique_id=516140622]
 stream = ExtResource("8_ground_warning")
 volume_db = -5.0
 
-[node name="GameplayMusic" type="AudioStreamPlayer" parent="."]
+[node name="GameplayMusic" type="AudioStreamPlayer" parent="." unique_id=742325070]
 stream = ExtResource("10_gameplay_music")
 volume_db = -12.0
 
-[node name="GameOverMusic" type="AudioStreamPlayer" parent="."]
+[node name="GameOverMusic" type="AudioStreamPlayer" parent="." unique_id=1431575630]
 stream = ExtResource("11_game_over_music")
 volume_db = -10.0
 
-[node name="ExtraLifeSound" type="AudioStreamPlayer" parent="."]
+[node name="ExtraLifeSound" type="AudioStreamPlayer" parent="." unique_id=1805098974]
 stream = ExtResource("14_extra_life")
 volume_db = -4.0
 
-[node name="PowerupPickupSound" type="AudioStreamPlayer" parent="."]
+[node name="PowerupPickupSound" type="AudioStreamPlayer" parent="." unique_id=2086320014]
 stream = ExtResource("15_powerup_pickup")
 volume_db = -5.0
 
-[node name="ScreenBombSound" type="AudioStreamPlayer" parent="."]
+[node name="ScreenBombSound" type="AudioStreamPlayer" parent="." unique_id=1111741709]
 stream = ExtResource("16_screen_bomb")
 volume_db = -3.0
 
+[node name="InvulnerabilitySound" type="AudioStreamPlayer" parent="." unique_id=1943519519]
+stream = ExtResource("17_invulnerability")
+volume_db = -4.0
+
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1433803769]
 
-[node name="StatusPanel" type="Panel" parent="HUD"]
+[node name="StatusPanel" type="Panel" parent="HUD" unique_id=1477894879]
 offset_left = 12.0
 offset_top = 12.0
 offset_right = 350.0
@@ -109,7 +114,8 @@ offset_bottom = 94.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_hud")
 
-[node name="PortraitFrame" type="Panel" parent="HUD/StatusPanel"]
+[node name="PortraitFrame" type="Panel" parent="HUD/StatusPanel" unique_id=1561350469]
+layout_mode = 0
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 74.0
@@ -117,8 +123,9 @@ offset_bottom = 74.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_portrait")
 
-[node name="Portrait" type="TextureRect" parent="HUD/StatusPanel"]
+[node name="Portrait" type="TextureRect" parent="HUD/StatusPanel" unique_id=269102525]
 texture_filter = 1
+layout_mode = 0
 offset_left = 11.0
 offset_top = 11.0
 offset_right = 71.0
@@ -128,7 +135,8 @@ texture = ExtResource("6_portrait")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="PlayerTag" type="Label" parent="HUD/StatusPanel"]
+[node name="PlayerTag" type="Label" parent="HUD/StatusPanel" unique_id=1394339614]
+layout_mode = 0
 offset_left = 84.0
 offset_top = 5.0
 offset_right = 126.0
@@ -139,7 +147,8 @@ theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 20
 text = "1P"
 
-[node name="LifeTitle" type="Label" parent="HUD/StatusPanel"]
+[node name="LifeTitle" type="Label" parent="HUD/StatusPanel" unique_id=1354957873]
+layout_mode = 0
 offset_left = 134.0
 offset_top = 7.0
 offset_right = 196.0
@@ -151,6 +160,7 @@ theme_override_font_sizes/font_size = 16
 text = "LIFE"
 
 [node name="HealthLabel" type="Label" parent="HUD/StatusPanel" unique_id=1629451783]
+layout_mode = 0
 offset_left = 198.0
 offset_top = 3.0
 offset_right = 330.0
@@ -161,7 +171,8 @@ theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 21
 text = "♥ ♥ ♥"
 
-[node name="AmmoTitle" type="Label" parent="HUD/StatusPanel"]
+[node name="AmmoTitle" type="Label" parent="HUD/StatusPanel" unique_id=1345675947]
+layout_mode = 0
 offset_left = 84.0
 offset_top = 43.0
 offset_right = 154.0
@@ -173,6 +184,7 @@ theme_override_font_sizes/font_size = 16
 text = "AMMO"
 
 [node name="AmmoLabel" type="Label" parent="HUD/StatusPanel" unique_id=14755743]
+layout_mode = 0
 offset_left = 157.0
 offset_top = 38.0
 offset_right = 326.0
@@ -181,7 +193,7 @@ theme_override_colors/font_color = Color(1, 0.823529, 0.294118, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 22
-text = "20 / 20"
+text = "30 / 30"
 
 [node name="TimeLabel" type="Label" parent="HUD" unique_id=1004187183]
 offset_left = 900.0
@@ -192,7 +204,7 @@ theme_override_font_sizes/font_size = 28
 text = "TIME: 0.0"
 horizontal_alignment = 2
 
-[node name="ScoreLabel" type="Label" parent="HUD"]
+[node name="ScoreLabel" type="Label" parent="HUD" unique_id=1817626310]
 offset_left = 850.0
 offset_top = 58.0
 offset_right = 1120.0
@@ -218,7 +230,7 @@ text = "WAVE 1"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ControlsLabel" type="Label" parent="HUD"]
+[node name="ControlsLabel" type="Label" parent="HUD" unique_id=292634739]
 offset_left = 176.0
 offset_top = 606.0
 offset_right = 976.0
@@ -250,7 +262,7 @@ TIME: 0.0 SECONDS"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="PowerupStatusLabel" type="Label" parent="HUD"]
+[node name="PowerupStatusLabel" type="Label" parent="HUD" unique_id=899285404]
 visible = false
 offset_left = 326.0
 offset_top = 18.0
@@ -263,7 +275,7 @@ theme_override_font_sizes/font_size = 18
 text = "INF AMMO 15.0s"
 horizontal_alignment = 1
 
-[node name="PowerupMessageLabel" type="Label" parent="HUD"]
+[node name="PowerupMessageLabel" type="Label" parent="HUD" unique_id=1200882331]
 visible = false
 offset_left = 276.0
 offset_top = 145.0
@@ -276,12 +288,97 @@ text = "TRIPLE SHOT!"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="PowerupFlash" type="ColorRect" parent="HUD"]
+[node name="PowerupFlash" type="ColorRect" parent="HUD" unique_id=1254772838]
 visible = false
 offset_right = 1152.0
 offset_bottom = 648.0
 mouse_filter = 2
 color = Color(1, 0.72, 0.25, 0)
+
+[node name="UpgradeOverlay" type="ColorRect" parent="HUD" unique_id=36904212]
+visible = false
+z_index = 50
+offset_right = 1152.0
+offset_bottom = 648.0
+color = Color(0.0117647, 0.0196078, 0.0509804, 0.96)
+
+[node name="UpgradeTitle" type="Label" parent="HUD/UpgradeOverlay" unique_id=396870712]
+layout_mode = 0
+offset_left = 226.0
+offset_top = 62.0
+offset_right = 926.0
+offset_bottom = 112.0
+theme_override_colors/font_color = Color(1, 0.823529, 0.294118, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 34
+text = "CHOOSE ONE UPGRADE"
+horizontal_alignment = 1
+
+[node name="UpgradeSubtitle" type="Label" parent="HUD/UpgradeOverlay" unique_id=1005560372]
+layout_mode = 0
+offset_left = 226.0
+offset_top = 118.0
+offset_right = 926.0
+offset_bottom = 152.0
+theme_override_colors/font_color = Color(0.607843, 0.807843, 1, 1)
+theme_override_font_sizes/font_size = 17
+text = "SELECT WITH 1 / 2 / 3, MOUSE, OR CONTROLLER"
+horizontal_alignment = 1
+
+[node name="Upgrade1" type="Button" parent="HUD/UpgradeOverlay" unique_id=641615477]
+layout_mode = 0
+offset_left = 52.0
+offset_top = 202.0
+offset_right = 352.0
+offset_bottom = 475.0
+focus_neighbor_right = NodePath("../Upgrade2")
+theme_override_colors/font_color = Color(0.870588, 0.941176, 1, 1)
+theme_override_colors/font_focus_color = Color(1, 0.843137, 0.352941, 1)
+theme_override_font_sizes/font_size = 19
+text = "1   RELOAD DRIVE
+
+Reload time -10%"
+
+[node name="Upgrade2" type="Button" parent="HUD/UpgradeOverlay" unique_id=441363839]
+layout_mode = 0
+offset_left = 426.0
+offset_top = 202.0
+offset_right = 726.0
+offset_bottom = 475.0
+focus_neighbor_left = NodePath("../Upgrade1")
+focus_neighbor_right = NodePath("../Upgrade3")
+theme_override_colors/font_color = Color(0.870588, 0.941176, 1, 1)
+theme_override_colors/font_focus_color = Color(1, 0.843137, 0.352941, 1)
+theme_override_font_sizes/font_size = 19
+text = "2   ACCELERATED ROUNDS
+
+Projectile speed +10%"
+
+[node name="Upgrade3" type="Button" parent="HUD/UpgradeOverlay" unique_id=1652019532]
+layout_mode = 0
+offset_left = 800.0
+offset_top = 202.0
+offset_right = 1100.0
+offset_bottom = 475.0
+focus_neighbor_left = NodePath("../Upgrade2")
+theme_override_colors/font_color = Color(0.870588, 0.941176, 1, 1)
+theme_override_colors/font_focus_color = Color(1, 0.843137, 0.352941, 1)
+theme_override_font_sizes/font_size = 19
+text = "3   MOBILITY SERVOS
+
+Movement speed +5%"
+
+[node name="UpgradeFooter" type="Label" parent="HUD/UpgradeOverlay" unique_id=1817809149]
+layout_mode = 0
+offset_left = 176.0
+offset_top = 525.0
+offset_right = 976.0
+offset_bottom = 570.0
+theme_override_colors/font_color = Color(0.623529, 0.670588, 0.760784, 1)
+theme_override_font_sizes/font_size = 16
+text = "UPGRADES LAST FOR THE REST OF THIS RUN"
+horizontal_alignment = 1
 
 [node name="InitialsPrompt" type="Label" parent="HUD" unique_id=1277907958]
 visible = false
@@ -313,7 +410,7 @@ offset_bottom = 535.0
 theme_override_font_sizes/font_size = 23
 horizontal_alignment = 1
 
-[node name="RestartLabel" type="Label" parent="HUD"]
+[node name="RestartLabel" type="Label" parent="HUD" unique_id=1657948622]
 visible = false
 offset_left = 276.0
 offset_top = 570.0
@@ -324,6 +421,25 @@ theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 22
 text = "PRESS R OR START TO RESTART"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PauseOverlay" type="ColorRect" parent="HUD" unique_id=1706837552]
+process_mode = 3
+visible = false
+offset_right = 1153.0
+offset_bottom = 648.0
+color = Color(0.019607844, 0.019607844, 0.019607844, 1)
+
+[node name="Label" type="Label" parent="HUD/PauseOverlay" unique_id=1617330700]
+layout_mode = 0
+offset_left = 462.0
+offset_top = 282.0
+offset_right = 695.0
+offset_bottom = 357.0
+text = "PAUSED
+
+PRESS P OR START TO RESUME"
 horizontal_alignment = 1
 vertical_alignment = 1
 

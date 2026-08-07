@@ -6,6 +6,49 @@ const SURVIVAL_POINTS_PER_SECOND := 10
 const EXTRA_LIFE_SCORE_INTERVAL := 50000
 const MAX_PLAYER_HEALTH := 5
 const POWERUP_DURATION := 15.0
+const UPGRADE_DEFINITIONS := {
+	"reload_speed": {
+		"title": "RELOAD DRIVE",
+		"description": "Reload time -10% (minimum 1.2s)",
+	},
+	"bullet_speed": {
+		"title": "ACCELERATED ROUNDS",
+		"description": "Projectile speed +10% (maximum +100%)",
+	},
+	"magazine_size": {
+		"title": "EXPANDED MAGAZINE",
+		"description": "Magazine capacity +10% (maximum 60)",
+	},
+	"bullet_size": {
+		"title": "HEAVY ROUNDS",
+		"description": "Projectile size +3% (maximum +30%)",
+	},
+	"move_speed": {
+		"title": "MOBILITY SERVOS",
+		"description": "Movement speed +5% (maximum +50%)",
+	},
+	"fire_rate": {
+		"title": "TRIGGER TUNING",
+		"description": "Time between shots -5%",
+	},
+	"powerup_duration": {
+		"title": "POWER CELL",
+		"description": "Temporary power-ups last 10% longer",
+	},
+	"recovery_window": {
+		"title": "COMBAT RECOVERY",
+		"description": "Post-hit protection lasts 10% longer",
+	},
+	"jump_boost": {
+		"title": "KINETIC BOOTS",
+		"description": "Jump strength +5% (maximum +30%)",
+	},
+	"field_repair": {
+		"title": "FIELD REPAIR",
+		"description": "Restore one heart (maximum five)",
+		"selection_weight": 0.4,
+	},
+}
 
 @export var enemy_scene: PackedScene
 @export var aimed_enemy_scene: PackedScene
@@ -38,6 +81,12 @@ const POWERUP_DURATION := 15.0
 @onready var powerup_status_label: Label = $HUD/PowerupStatusLabel
 @onready var powerup_message_label: Label = $HUD/PowerupMessageLabel
 @onready var powerup_flash: ColorRect = $HUD/PowerupFlash
+@onready var upgrade_overlay: ColorRect = $HUD/UpgradeOverlay
+@onready var upgrade_buttons: Array[Button] = [
+	$HUD/UpgradeOverlay/Upgrade1,
+	$HUD/UpgradeOverlay/Upgrade2,
+	$HUD/UpgradeOverlay/Upgrade3,
+]
 @onready var game_over_label: Label = $HUD/GameOverLabel
 @onready var restart_label: Label = $HUD/RestartLabel
 @onready var initials_prompt: Label = $HUD/InitialsPrompt
@@ -50,6 +99,7 @@ const POWERUP_DURATION := 15.0
 @onready var extra_life_sound: AudioStreamPlayer = $ExtraLifeSound
 @onready var powerup_pickup_sound: AudioStreamPlayer = $PowerupPickupSound
 @onready var screen_bomb_sound: AudioStreamPlayer = $ScreenBombSound
+@onready var invulnerability_sound: AudioStreamPlayer = $InvulnerabilitySound
 
 var elapsed_time := 0.0
 var current_score := 0
@@ -68,6 +118,8 @@ var camera_shake_time := 0.0
 var camera_shake_strength := 0.0
 var next_extra_life_score := EXTRA_LIFE_SCORE_INTERVAL
 var powerup_message_tween: Tween
+var choosing_upgrade := false
+var current_upgrade_ids: Array[String] = []
 
 
 func _ready() -> void:
@@ -81,6 +133,12 @@ func _ready() -> void:
 	powerup_status_label.hide()
 	powerup_message_label.hide()
 	powerup_flash.hide()
+	upgrade_overlay.hide()
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	enemy_spawn_timer.process_mode = Node.PROCESS_MODE_PAUSABLE
+	wave_break_timer.process_mode = Node.PROCESS_MODE_PAUSABLE
+	wave_message_timer.process_mode = Node.PROCESS_MODE_PAUSABLE
+	powerup_spawn_timer.process_mode = Node.PROCESS_MODE_PAUSABLE
 	_on_player_health_changed(int($Player.get("health")))
 	_on_player_ammo_changed(
 		int($Player.get("current_ammo")),
@@ -127,6 +185,14 @@ func _ready() -> void:
 		initials_input.text_submitted.connect(
 			_on_initials_input_text_submitted
 		)
+
+	for index in range(upgrade_buttons.size()):
+		if not upgrade_buttons[index].pressed.is_connected(
+			_on_upgrade_button_pressed.bind(index)
+		):
+			upgrade_buttons[index].pressed.connect(
+				_on_upgrade_button_pressed.bind(index)
+			)
 
 	start_wave()
 	schedule_powerup_spawn(true)
@@ -190,7 +256,7 @@ func start_game_over_music() -> void:
 func _process(delta: float) -> void:
 	update_camera_shake(delta)
 
-	if is_game_over:
+	if is_game_over or choosing_upgrade or get_tree().paused:
 		return
 
 	elapsed_time += delta
@@ -212,7 +278,7 @@ func schedule_powerup_spawn(first_spawn := false) -> void:
 
 
 func _on_powerup_spawn_timer_timeout() -> void:
-	if is_game_over:
+	if is_game_over or choosing_upgrade:
 		return
 
 	if (
@@ -235,10 +301,12 @@ func _on_powerup_carrier_destroyed(drop_position: Vector2) -> void:
 	var roll := randf()
 	var selected_type := PowerupItem.PowerupType.BOMB
 
-	if roll < 0.40:
+	if roll < 0.30:
 		selected_type = PowerupItem.PowerupType.UNLIMITED_AMMO
-	elif roll < 0.75:
+	elif roll < 0.60:
 		selected_type = PowerupItem.PowerupType.TRIPLE_SHOT
+	elif roll < 0.85:
+		selected_type = PowerupItem.PowerupType.INVULNERABLE
 
 	var item := powerup_item_scene.instantiate() as PowerupItem
 	item.collected.connect(_on_powerup_collected)
@@ -263,6 +331,13 @@ func _on_powerup_collected(powerup_type: int, player_node: Node) -> void:
 		PowerupItem.PowerupType.TRIPLE_SHOT:
 			player_node.call("activate_triple_shot", POWERUP_DURATION)
 			show_powerup_message("TRIPLE SHOT!", Color("ffb52e"))
+		PowerupItem.PowerupType.INVULNERABLE:
+			player_node.call(
+				"activate_powerup_invulnerability",
+				POWERUP_DURATION
+			)
+			invulnerability_sound.play()
+			show_powerup_message("INVULNERABLE!", Color("73e8ff"))
 
 
 func perform_screen_bomb() -> void:
@@ -294,11 +369,16 @@ func update_powerup_status() -> void:
 	var status_parts: Array[String] = []
 	var unlimited_time := float(player.call("get_unlimited_ammo_time_left"))
 	var triple_time := float(player.call("get_triple_shot_time_left"))
+	var invulnerable_time := float(
+		player.call("get_powerup_invulnerability_time_left")
+	)
 
 	if unlimited_time > 0.0:
 		status_parts.append("INF AMMO %.1fs" % unlimited_time)
 	if triple_time > 0.0:
 		status_parts.append("TRIPLE SHOT %.1fs" % triple_time)
+	if invulnerable_time > 0.0:
+		status_parts.append("INVULNERABLE %.1fs" % invulnerable_time)
 
 	if status_parts.is_empty():
 		powerup_status_label.hide()
@@ -489,9 +569,122 @@ func _on_enemy_destroyed(enemy_score: int) -> void:
 func finish_wave() -> void:
 	wave_active = false
 	enemy_spawn_timer.stop()
+	powerup_spawn_timer.stop()
+
+	for projectile in get_tree().get_nodes_in_group("enemy_projectiles"):
+		if is_instance_valid(projectile):
+			projectile.queue_free()
+
 	show_wave_message("WAVE CLEARED")
+
+	if wave_number % 5 == 0:
+		grant_extra_life("5-WAVE LIFE BONUS!")
+
+	show_upgrade_choices()
+
+
+func show_upgrade_choices() -> void:
+	var player := get_tree().get_first_node_in_group("player")
+
+	if not is_instance_valid(player) or is_game_over:
+		return
+
+	var available_upgrades: Array[String] = []
+
+	for upgrade_id: String in UPGRADE_DEFINITIONS:
+		if bool(player.call("can_apply_upgrade", upgrade_id)):
+			available_upgrades.append(upgrade_id)
+
+	current_upgrade_ids = choose_weighted_upgrades(available_upgrades, 3)
+
+	if current_upgrade_ids.size() < 3:
+		push_error("There are fewer than three available upgrades.")
+		wave_break_timer.wait_time = wave_break_duration
+		wave_break_timer.start()
+		return
+
+	choosing_upgrade = true
+	wave_label.hide()
+	player.process_mode = Node.PROCESS_MODE_DISABLED
+
+	for group_name in ["powerup_carriers", "powerup_items"]:
+		for powerup in get_tree().get_nodes_in_group(group_name):
+			powerup.process_mode = Node.PROCESS_MODE_DISABLED
+
+	for index in range(upgrade_buttons.size()):
+		var upgrade_data: Dictionary = UPGRADE_DEFINITIONS[
+			current_upgrade_ids[index]
+		]
+		upgrade_buttons[index].text = "%d   %s\n\n%s" % [
+			index + 1,
+			str(upgrade_data["title"]),
+			str(upgrade_data["description"]),
+		]
+
+	upgrade_overlay.show()
+	upgrade_buttons[0].grab_focus()
+
+
+func choose_weighted_upgrades(
+	available_upgrades: Array[String], amount: int
+) -> Array[String]:
+	var remaining: Array[String] = available_upgrades.duplicate()
+	var chosen: Array[String] = []
+
+	while not remaining.is_empty() and chosen.size() < amount:
+		var total_weight := 0.0
+
+		for upgrade_id: String in remaining:
+			total_weight += float(
+				UPGRADE_DEFINITIONS[upgrade_id].get("selection_weight", 1.0)
+			)
+
+		var roll := randf() * total_weight
+		var selected_index := remaining.size() - 1
+
+		for index in range(remaining.size()):
+			var upgrade_id: String = remaining[index]
+			roll -= float(
+				UPGRADE_DEFINITIONS[upgrade_id].get("selection_weight", 1.0)
+			)
+
+			if roll <= 0.0:
+				selected_index = index
+				break
+
+		chosen.append(remaining[selected_index])
+		remaining.remove_at(selected_index)
+
+	return chosen
+
+
+func _on_upgrade_button_pressed(index: int) -> void:
+	if not choosing_upgrade or index >= current_upgrade_ids.size():
+		return
+
+	var player := get_tree().get_first_node_in_group("player")
+
+	if not is_instance_valid(player):
+		return
+
+	var upgrade_id := current_upgrade_ids[index]
+	var upgrade_data: Dictionary = UPGRADE_DEFINITIONS[upgrade_id]
+
+	if not bool(player.call("apply_upgrade", upgrade_id)):
+		return
+
+	choosing_upgrade = false
+	upgrade_overlay.hide()
+	player.process_mode = Node.PROCESS_MODE_PAUSABLE
+
+	for group_name in ["powerup_carriers", "powerup_items"]:
+		for powerup in get_tree().get_nodes_in_group(group_name):
+			powerup.process_mode = Node.PROCESS_MODE_PAUSABLE
+
+	show_wave_message("UPGRADE: %s" % str(upgrade_data["title"]))
 	wave_break_timer.wait_time = wave_break_duration
 	wave_break_timer.start()
+	schedule_powerup_spawn()
 
 
 func _on_wave_break_timer_timeout() -> void:
@@ -535,7 +728,7 @@ func _on_player_health_changed(current_health: int) -> void:
 	var hearts := ""
 
 	for _heart in range(current_health):
-		hearts += "♥ "
+		hearts += String.chr(0x2665) + " "
 
 	health_label.text = hearts.strip_edges()
 
@@ -566,7 +759,7 @@ func add_score(points: int) -> void:
 		next_extra_life_score += EXTRA_LIFE_SCORE_INTERVAL
 
 
-func grant_extra_life() -> void:
+func grant_extra_life(message := "EXTRA LIFE!") -> void:
 	var player := get_tree().get_first_node_in_group("player")
 
 	if not is_instance_valid(player):
@@ -574,7 +767,7 @@ func grant_extra_life() -> void:
 
 	if bool(player.call("give_extra_life", MAX_PLAYER_HEALTH)):
 		extra_life_sound.play()
-		show_powerup_message("EXTRA LIFE!", Color("ff4b4b"))
+		show_powerup_message(message, Color("ff4b4b"))
 
 
 func update_score_label() -> void:
@@ -583,6 +776,8 @@ func update_score_label() -> void:
 
 func _on_player_died() -> void:
 	is_game_over = true
+	choosing_upgrade = false
+	upgrade_overlay.hide()
 	stop_gameplay()
 	start_game_over_music()
 	status_panel.hide()
@@ -652,6 +847,18 @@ func show_initials_input() -> void:
 	initials_input.show()
 	initials_input.clear()
 	initials_input.grab_focus()
+
+func toggle_pause() -> void:
+	if is_game_over or choosing_upgrade:
+		return
+
+	get_tree().paused = not get_tree().paused
+	gameplay_music.stream_paused = get_tree().paused
+
+	if get_tree().paused:
+		$HUD/PauseOverlay.show()
+	else:
+		$HUD/PauseOverlay.hide()
 
 
 func _on_initials_input_text_submitted(new_text: String) -> void:
@@ -767,6 +974,45 @@ func save_leaderboard() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+
+	if event.is_action_pressed("pause"):
+		toggle_pause()
+		get_viewport().set_input_as_handled()
+		return
+	if choosing_upgrade and event is InputEventJoypadButton and event.pressed:
+		var button_index: int = event.button_index
+		var focused := get_viewport().gui_get_focus_owner()
+		var focused_index := upgrade_buttons.find(focused)
+
+		if button_index == JOY_BUTTON_DPAD_LEFT:
+			upgrade_buttons[maxi(0, focused_index - 1)].grab_focus()
+			get_viewport().set_input_as_handled()
+			return
+		if button_index == JOY_BUTTON_DPAD_RIGHT:
+			upgrade_buttons[mini(upgrade_buttons.size() - 1, focused_index + 1)].grab_focus()
+			get_viewport().set_input_as_handled()
+			return
+		if button_index == JOY_BUTTON_A or button_index == JOY_BUTTON_X:
+			if focused_index >= 0:
+				_on_upgrade_button_pressed(focused_index)
+				get_viewport().set_input_as_handled()
+			return
+
+	if (
+		choosing_upgrade
+		and event is InputEventKey
+		and event.pressed
+		and not event.echo
+	):
+		match event.physical_keycode:
+			KEY_1:
+				_on_upgrade_button_pressed(0)
+			KEY_2:
+				_on_upgrade_button_pressed(1)
+			KEY_3:
+				_on_upgrade_button_pressed(2)
+		return
+
 	if (
 		is_game_over
 		and not waiting_for_initials
