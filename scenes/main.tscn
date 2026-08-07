@@ -20,7 +20,7 @@
 [ext_resource type="AudioStream" uid="uid://dgkdgdxr6ahyf" path="res://assets/audio/invulnerability.wav" id="17_invulnerability"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
-bg_color = Color(0.0196078, 0.0352941, 0.0784314, 0.94)
+bg_color = Color(0.0196078, 0.0352941, 0.0784314, 0.55)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
@@ -28,7 +28,7 @@ border_width_bottom = 3
 border_color = Color(0.188235, 0.47451, 0.67451, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_portrait"]
-bg_color = Color(0.00784314, 0.0117647, 0.027451, 1)
+bg_color = Color(0.00784314, 0.0117647, 0.027451, 0.4)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
@@ -195,13 +195,13 @@ theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 22
 text = "30 / 30"
 
-[node name="TimeLabel" type="Label" parent="HUD" unique_id=1004187183]
+[node name="WaveIndicatorLabel" type="Label" parent="HUD" unique_id=1004187183]
 offset_left = 900.0
 offset_top = 20.0
 offset_right = 1120.0
 offset_bottom = 70.0
 theme_override_font_sizes/font_size = 28
-text = "TIME: 0.0"
+text = "WAVE 1"
 horizontal_alignment = 2
 
 [node name="ScoreLabel" type="Label" parent="HUD" unique_id=1817626310]
@@ -326,48 +326,66 @@ theme_override_font_sizes/font_size = 17
 text = "SELECT WITH 1 / 2 / 3, MOUSE, OR CONTROLLER"
 horizontal_alignment = 1
 
-[node name="Upgrade1" type="Button" parent="HUD/UpgradeOverlay" unique_id=641615477]
+[node name="UpgradeRow" type="HBoxContainer" parent="HUD/UpgradeOverlay" unique_id=641615477]
 layout_mode = 0
-offset_left = 52.0
-offset_top = 202.0
-offset_right = 352.0
-offset_bottom = 475.0
+offset_left = 62.0
+offset_top = 170.0
+offset_right = 1090.0
+offset_bottom = 430.0
+theme_override_constants/separation = 34.0
+alignment = 1
+
+[node name="Upgrade1" type="Button" parent="HUD/UpgradeOverlay/UpgradeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
 focus_neighbor_right = NodePath("../Upgrade2")
 theme_override_colors/font_color = Color(0.870588, 0.941176, 1, 1)
 theme_override_colors/font_focus_color = Color(1, 0.843137, 0.352941, 1)
 theme_override_font_sizes/font_size = 19
+theme_override_constants/content_margin_left = 14.0
+theme_override_constants/content_margin_top = 20.0
+theme_override_constants/content_margin_right = 14.0
+theme_override_constants/content_margin_bottom = 20.0
 text = "1   RELOAD DRIVE
 
 Reload time -10%"
+text_alignment = 0
 
-[node name="Upgrade2" type="Button" parent="HUD/UpgradeOverlay" unique_id=441363839]
-layout_mode = 0
-offset_left = 426.0
-offset_top = 202.0
-offset_right = 726.0
-offset_bottom = 475.0
+[node name="Upgrade2" type="Button" parent="HUD/UpgradeOverlay/UpgradeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
 focus_neighbor_left = NodePath("../Upgrade1")
 focus_neighbor_right = NodePath("../Upgrade3")
 theme_override_colors/font_color = Color(0.870588, 0.941176, 1, 1)
 theme_override_colors/font_focus_color = Color(1, 0.843137, 0.352941, 1)
 theme_override_font_sizes/font_size = 19
+theme_override_constants/content_margin_left = 14.0
+theme_override_constants/content_margin_top = 20.0
+theme_override_constants/content_margin_right = 14.0
+theme_override_constants/content_margin_bottom = 20.0
 text = "2   ACCELERATED ROUNDS
 
 Projectile speed +10%"
+text_alignment = 0
 
-[node name="Upgrade3" type="Button" parent="HUD/UpgradeOverlay" unique_id=1652019532]
-layout_mode = 0
-offset_left = 800.0
-offset_top = 202.0
-offset_right = 1100.0
-offset_bottom = 475.0
+[node name="Upgrade3" type="Button" parent="HUD/UpgradeOverlay/UpgradeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
 focus_neighbor_left = NodePath("../Upgrade2")
 theme_override_colors/font_color = Color(0.870588, 0.941176, 1, 1)
 theme_override_colors/font_focus_color = Color(1, 0.843137, 0.352941, 1)
 theme_override_font_sizes/font_size = 19
+theme_override_constants/content_margin_left = 14.0
+theme_override_constants/content_margin_top = 20.0
+theme_override_constants/content_margin_right = 14.0
+theme_override_constants/content_margin_bottom = 20.0
 text = "3   MOBILITY SERVOS
 
 Movement speed +5%"
+text_alignment = 0
 
 [node name="UpgradeFooter" type="Label" parent="HUD/UpgradeOverlay" unique_id=1817809149]
 layout_mode = 0

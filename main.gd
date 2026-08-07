@@ -6,6 +6,8 @@ const SURVIVAL_POINTS_PER_SECOND := 10
 const EXTRA_LIFE_SCORE_INTERVAL := 50000
 const MAX_PLAYER_HEALTH := 5
 const POWERUP_DURATION := 15.0
+const HEART_TEXTURE_SIZE := 24
+const HEART_DISPLAY_SIZE := 20
 const UPGRADE_DEFINITIONS := {
 	"reload_speed": {
 		"title": "RELOAD DRIVE",
@@ -74,7 +76,7 @@ const UPGRADE_DEFINITIONS := {
 @onready var status_panel: Panel = $HUD/StatusPanel
 @onready var health_label: Label = $HUD/StatusPanel/HealthLabel
 @onready var ammo_label: Label = $HUD/StatusPanel/AmmoLabel
-@onready var time_label: Label = $HUD/TimeLabel
+@onready var wave_indicator_label: Label = $HUD/WaveIndicatorLabel
 @onready var score_label: Label = $HUD/ScoreLabel
 @onready var wave_label: Label = $HUD/WaveLabel
 @onready var controls_label: Label = $HUD/ControlsLabel
@@ -83,9 +85,9 @@ const UPGRADE_DEFINITIONS := {
 @onready var powerup_flash: ColorRect = $HUD/PowerupFlash
 @onready var upgrade_overlay: ColorRect = $HUD/UpgradeOverlay
 @onready var upgrade_buttons: Array[Button] = [
-	$HUD/UpgradeOverlay/Upgrade1,
-	$HUD/UpgradeOverlay/Upgrade2,
-	$HUD/UpgradeOverlay/Upgrade3,
+	$HUD/UpgradeOverlay/UpgradeRow/Upgrade1,
+	$HUD/UpgradeOverlay/UpgradeRow/Upgrade2,
+	$HUD/UpgradeOverlay/UpgradeRow/Upgrade3,
 ]
 @onready var game_over_label: Label = $HUD/GameOverLabel
 @onready var restart_label: Label = $HUD/RestartLabel
@@ -120,6 +122,8 @@ var next_extra_life_score := EXTRA_LIFE_SCORE_INTERVAL
 var powerup_message_tween: Tween
 var choosing_upgrade := false
 var current_upgrade_ids: Array[String] = []
+var hearts_row: HBoxContainer
+var heart_textures: Array[TextureRect] = []
 
 
 func _ready() -> void:
@@ -139,6 +143,8 @@ func _ready() -> void:
 	wave_break_timer.process_mode = Node.PROCESS_MODE_PAUSABLE
 	wave_message_timer.process_mode = Node.PROCESS_MODE_PAUSABLE
 	powerup_spawn_timer.process_mode = Node.PROCESS_MODE_PAUSABLE
+	health_label.hide()
+	setup_health_hearts()
 	_on_player_health_changed(int($Player.get("health")))
 	_on_player_ammo_changed(
 		int($Player.get("current_ammo")),
@@ -215,6 +221,60 @@ func show_controls_temporarily() -> void:
 	tween.tween_callback(controls_label.hide)
 
 
+func create_heart_texture() -> ImageTexture:
+	var image := Image.create(
+		HEART_TEXTURE_SIZE,
+		HEART_TEXTURE_SIZE,
+		false,
+		Image.FORMAT_RGBA8
+	)
+	var center := Vector2(
+		HEART_TEXTURE_SIZE * 0.5,
+		HEART_TEXTURE_SIZE * 0.42
+	)
+	var scale_factor := HEART_TEXTURE_SIZE * 0.27
+	var heart_color := Color(1.0, 0.23, 0.29, 1.0)
+
+	for y in range(HEART_TEXTURE_SIZE):
+		for x in range(HEART_TEXTURE_SIZE):
+			var u := (float(x) - center.x) / scale_factor
+			var v := (center.y - float(y)) / scale_factor
+			var curve := u * u + v * v - 1.0
+
+			if curve * curve * curve - u * u * v * v * v < 0.0:
+				image.set_pixel(x, y, heart_color)
+
+	return ImageTexture.create_from_image(image)
+
+
+func setup_health_hearts() -> void:
+	hearts_row = HBoxContainer.new()
+	hearts_row.name = "Hearts"
+	hearts_row.add_theme_constant_override("separation", 4)
+
+	var heart_texture := create_heart_texture()
+
+	for _index in range(MAX_PLAYER_HEALTH):
+		var heart := TextureRect.new()
+		heart.texture = heart_texture
+		heart.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		heart.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		heart.custom_minimum_size = Vector2(
+			HEART_DISPLAY_SIZE,
+			HEART_DISPLAY_SIZE
+		)
+		hearts_row.add_child(heart)
+		heart_textures.append(heart)
+
+	var life_title := $HUD/StatusPanel/LifeTitle as Control
+	hearts_row.position = Vector2(
+		life_title.offset_right + 8.0,
+		life_title.offset_top
+		+ (life_title.offset_bottom - life_title.offset_top - HEART_DISPLAY_SIZE) * 0.5
+	)
+	$HUD/StatusPanel.add_child(hearts_row)
+
+
 func start_gameplay_music() -> void:
 	configure_music_loop(gameplay_music)
 	gameplay_music.play()
@@ -260,7 +320,6 @@ func _process(delta: float) -> void:
 		return
 
 	elapsed_time += delta
-	time_label.text = "TIME: %.1f" % elapsed_time
 	update_powerup_status()
 
 	while elapsed_time >= next_survival_score_time:
@@ -270,19 +329,20 @@ func _process(delta: float) -> void:
 
 func schedule_powerup_spawn(first_spawn := false) -> void:
 	powerup_spawn_timer.wait_time = (
-		randf_range(12.0, 18.0)
+		randf_range(15.0, 30.0)
 		if first_spawn
-		else randf_range(22.0, 35.0)
+		else randf_range(85.0, 95.0)
 	)
 	powerup_spawn_timer.start()
 
 
 func _on_powerup_spawn_timer_timeout() -> void:
-	if is_game_over or choosing_upgrade:
+	if is_game_over:
 		return
 
 	if (
-		powerup_carrier_scene != null
+		not choosing_upgrade
+		and powerup_carrier_scene != null
 		and get_tree().get_nodes_in_group("powerup_carriers").is_empty()
 	):
 		var carrier := powerup_carrier_scene.instantiate() as Area2D
@@ -546,6 +606,7 @@ func start_wave() -> void:
 
 	show_wave_message("WAVE %d" % wave_number)
 	enemy_spawn_timer.start()
+	update_wave_indicator()
 
 	print(
 		"Wave: ",
@@ -569,7 +630,6 @@ func _on_enemy_destroyed(enemy_score: int) -> void:
 func finish_wave() -> void:
 	wave_active = false
 	enemy_spawn_timer.stop()
-	powerup_spawn_timer.stop()
 
 	for projectile in get_tree().get_nodes_in_group("enemy_projectiles"):
 		if is_instance_valid(projectile):
@@ -684,7 +744,6 @@ func _on_upgrade_button_pressed(index: int) -> void:
 	show_wave_message("UPGRADE: %s" % str(upgrade_data["title"]))
 	wave_break_timer.wait_time = wave_break_duration
 	wave_break_timer.start()
-	schedule_powerup_spawn()
 
 
 func _on_wave_break_timer_timeout() -> void:
@@ -725,12 +784,8 @@ func update_camera_shake(delta: float) -> void:
 
 
 func _on_player_health_changed(current_health: int) -> void:
-	var hearts := ""
-
-	for _heart in range(current_health):
-		hearts += String.chr(0x2665) + " "
-
-	health_label.text = hearts.strip_edges()
+	for index in range(heart_textures.size()):
+		heart_textures[index].visible = index < current_health
 
 
 func _on_player_ammo_changed(
@@ -774,6 +829,10 @@ func update_score_label() -> void:
 	score_label.text = "SCORE: %06d" % current_score
 
 
+func update_wave_indicator() -> void:
+	wave_indicator_label.text = "WAVE %d" % wave_number
+
+
 func _on_player_died() -> void:
 	is_game_over = true
 	choosing_upgrade = false
@@ -781,7 +840,7 @@ func _on_player_died() -> void:
 	stop_gameplay()
 	start_game_over_music()
 	status_panel.hide()
-	time_label.hide()
+	wave_indicator_label.hide()
 	score_label.hide()
 	wave_label.hide()
 	powerup_status_label.hide()

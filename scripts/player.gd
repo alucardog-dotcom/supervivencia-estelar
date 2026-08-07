@@ -22,6 +22,7 @@ signal ammo_changed(current_ammo: int, magazine_size: int)
 @export var speed: float = 288.0
 @export var jump_velocity: float = -690.0
 @export var gravity: float = 1850.0
+@export var movement_response: float = 12.0
 @export var horizontal_margin: float = 32.0
 @export var bullet_scene: PackedScene
 @export var max_health: int = 3
@@ -122,7 +123,9 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y += gravity * delta
 
-	velocity.x = 0.0 if is_crouching else direction * speed
+	var target_velocity_x := 0.0 if is_crouching else direction * speed
+	var interpolation_factor := 1.0 - exp(-movement_response * delta)
+	velocity.x = lerpf(velocity.x, target_velocity_x, interpolation_factor)
 	move_and_slide()
 
 	if global_position.y >= floor_y:
