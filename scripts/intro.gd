@@ -4,6 +4,7 @@ const MAIN_SCENE := "res://scenes/main.tscn"
 
 @onready var title_logo: Sprite2D = $TitleLogo
 @onready var subtitle_label: Label = $SubtitleLabel
+@onready var options_hint_label: Label = $OptionsHint
 @onready var prompt_label: Label = $PromptLabel
 @onready var fade_overlay: ColorRect = $FadeOverlay
 @onready var music: AudioStreamPlayer = $Music
@@ -13,6 +14,10 @@ var is_leaving := false
 
 
 func _ready() -> void:
+	options_hint_label.text = "PRESS %s OR %s FOR OPTIONS" % [
+		GameSettings.describe_key("open_options"),
+		GameSettings.describe_joypad("open_options"),
+	]
 	title_logo.modulate.a = 0.0
 	subtitle_label.modulate.a = 0.0
 	prompt_label.modulate.a = 0.0

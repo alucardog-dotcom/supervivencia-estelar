@@ -1107,7 +1107,12 @@ func show_leaderboard() -> void:
 
 	leaderboard_label.text = ranking_text
 	leaderboard_label.show()
-	restart_label.text = "PRESS R / START TO RESTART\nPRESS O / SELECT FOR MENU"
+	restart_label.text = "PRESS %s / %s TO RESTART\nPRESS %s / %s FOR MENU" % [
+		GameSettings.describe_key("restart"),
+		GameSettings.describe_joypad("restart"),
+		GameSettings.describe_key("open_options"),
+		GameSettings.describe_joypad("open_options"),
+	]
 	restart_label.show()
 
 	if LeaderboardClient.is_online_enabled():
