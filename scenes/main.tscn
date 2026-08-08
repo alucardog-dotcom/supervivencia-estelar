@@ -6,10 +6,12 @@
 [ext_resource type="PackedScene" uid="uid://cei3sm53hrusv" path="res://scenes/aimed_enemy.tscn" id="3_jyhfs"]
 [ext_resource type="PackedScene" uid="uid://b2yy8iynfxevu" path="res://scenes/fast_enemy.tscn" id="4_tbgi4"]
 [ext_resource type="Texture2D" uid="uid://dh3p1kccvvqlw" path="res://assets/backgrounds/earth_last_stand_platform_pixel.png" id="5_background"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/earth_last_stand_platform_day.png" id="19_day_background"]
 [ext_resource type="Texture2D" uid="uid://dujimm3saj7hl" path="res://assets/ui/red_commando_portrait_exact.png" id="6_portrait"]
 [ext_resource type="PackedScene" path="res://scenes/ground_enemy.tscn" id="7_ground_enemy"]
 [ext_resource type="AudioStream" uid="uid://8e3q2obpo8p0" path="res://assets/audio/ground_enemy_warning.wav" id="8_ground_warning"]
 [ext_resource type="PackedScene" path="res://scenes/kamikaze_enemy.tscn" id="9_kamikaze"]
+[ext_resource type="PackedScene" path="res://scenes/ambush_enemy.tscn" id="18_ambush"]
 [ext_resource type="AudioStream" uid="uid://dbcwdhsul0s7y" path="res://assets/audio/dark_boss_theme.wav" id="10_gameplay_music"]
 [ext_resource type="AudioStream" uid="uid://pg8sht3f7cgp" path="res://assets/audio/game_over_lament.wav" id="11_game_over_music"]
 [ext_resource type="PackedScene" path="res://scenes/powerup_carrier.tscn" id="12_powerup_carrier"]
@@ -35,6 +37,19 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.94902, 0.65098, 0.192157, 1)
 
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_rain"]
+emission_shape = 3
+emission_box_extents = Vector3(620, 20, 1)
+direction = Vector3(-0.18, 1, 0)
+spread = 4.0
+gravity = Vector3(-35, 900, 0)
+initial_velocity_min = 620.0
+initial_velocity_max = 760.0
+color = Color(0.52, 0.72, 0.95, 0.58)
+
+[sub_resource type="QuadMesh" id="QuadMesh_rain"]
+size = Vector2(1.5, 16)
+
 [node name="Main" type="Node2D" unique_id=2092926339]
 script = ExtResource("1_sugp2")
 enemy_scene = ExtResource("2_0wfyh")
@@ -42,6 +57,7 @@ aimed_enemy_scene = ExtResource("3_jyhfs")
 fast_enemy_scene = ExtResource("4_tbgi4")
 ground_enemy_scene = ExtResource("7_ground_enemy")
 kamikaze_enemy_scene = ExtResource("9_kamikaze")
+ambush_enemy_scene = ExtResource("18_ambush")
 powerup_carrier_scene = ExtResource("12_powerup_carrier")
 powerup_item_scene = ExtResource("13_powerup_item")
 final_max_enemies = 10
@@ -55,6 +71,33 @@ mouse_filter = 2
 texture = ExtResource("5_background")
 expand_mode = 1
 stretch_mode = 6
+
+[node name="DayBackground" type="TextureRect" parent="."]
+z_index = -9
+texture_filter = 1
+offset_right = 1152.0
+offset_bottom = 648.0
+mouse_filter = 2
+texture = ExtResource("19_day_background")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Rain" type="GPUParticles2D" parent="."]
+z_index = 20
+position = Vector2(576, -24)
+emitting = false
+amount = 220
+lifetime = 1.15
+process_material = SubResource("ParticleProcessMaterial_rain")
+draw_pass_1 = SubResource("QuadMesh_rain")
+
+[node name="LightningFlash" type="ColorRect" parent="."]
+z_index = 40
+offset_right = 1152.0
+offset_bottom = 648.0
+mouse_filter = 2
+color = Color(0.72, 0.82, 1, 1)
+modulate = Color(1, 1, 1, 0)
 
 [node name="Player" parent="." unique_id=611721687 instance=ExtResource("1_o5qli")]
 position = Vector2(576, 546)
@@ -232,14 +275,14 @@ vertical_alignment = 1
 
 [node name="ControlsLabel" type="Label" parent="HUD" unique_id=292634739]
 offset_left = 176.0
-offset_top = 606.0
+offset_top = 596.0
 offset_right = 976.0
-offset_bottom = 638.0
+offset_bottom = 646.0
 theme_override_colors/font_color = Color(0.737255, 0.85098, 1, 1)
 theme_override_colors/font_outline_color = Color(0.0156863, 0.027451, 0.0745098, 1)
 theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 16
-text = "A/D MOVE   SHIFT JUMP   S CROUCH   W AIM UP   SPACE FIRE"
+theme_override_font_sizes/font_size = 12
+text = "KEYS: A/D MOVE   SHIFT JUMP   S CROUCH   W AIM   SPACE FIRE   K RELOAD"
 horizontal_alignment = 1
 
 [node name="GameOverOverlay" type="ColorRect" parent="HUD" unique_id=2003815479]
@@ -415,9 +458,9 @@ offset_top = 325.0
 offset_right = 676.0
 offset_bottom = 380.0
 theme_override_font_sizes/font_size = 32
-placeholder_text = "AAA"
+placeholder_text = "YOUR NAME"
 alignment = 1
-max_length = 3
+max_length = 8
 
 [node name="LeaderboardLabel" type="Label" parent="HUD" unique_id=499061605]
 visible = false

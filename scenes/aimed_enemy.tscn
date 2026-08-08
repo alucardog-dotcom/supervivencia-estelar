@@ -22,6 +22,12 @@ score_value = 150
 texture_filter = 1
 texture = ExtResource("3_uno8e")
 
+[node name="EngineGlow" type="Polygon2D" parent="."]
+z_index = -1
+position = Vector2(0, 35)
+polygon = PackedVector2Array(-12, 0, -8, -7, 0, -11, 8, -7, 12, 0, 8, 7, 0, 11, -8, 7)
+color = Color(0.32, 0.7, 1, 0.5)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1948537912]
 shape = SubResource("RectangleShape2D_t3yyb")
 

@@ -17,6 +17,7 @@ func _ready() -> void:
 	subtitle_label.modulate.a = 0.0
 	prompt_label.modulate.a = 0.0
 	fade_overlay.modulate.a = 1.0
+	music.volume_db = GameSettings.music_db()
 	music.play()
 	play_title_reveal()
 
@@ -54,16 +55,37 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not can_start or is_leaving:
 		return
 
+	var is_key := event is InputEventKey
+	var is_joy := event is InputEventJoypadButton
+	var is_mouse := event is InputEventMouseButton
+
+	if is_key and (event.pressed and not event.echo):
+		if event.physical_keycode == KEY_O:
+			open_options()
+			return
+	if (
+		is_joy
+		and event.pressed
+		and event.button_index == JOY_BUTTON_BACK
+	):
+		open_options()
+		return
+
 	var pressed := false
-	if event is InputEventKey:
+	if is_key:
 		pressed = event.pressed and not event.echo
-	elif event is InputEventJoypadButton:
+	elif is_joy:
 		pressed = event.pressed
-	elif event is InputEventMouseButton:
+	elif is_mouse:
 		pressed = event.pressed
 
 	if pressed:
 		go_to_game()
+
+
+func open_options() -> void:
+	is_leaving = true
+	get_tree().change_scene_to_file("res://scenes/options_menu.tscn")
 
 
 func go_to_game() -> void:

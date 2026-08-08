@@ -51,6 +51,19 @@ theme_override_font_sizes/font_size = 22
 text = "THE LAST LINE OF DEFENSE"
 horizontal_alignment = 1
 
+[node name="OptionsHint" type="Label" parent="."]
+layout_mode = 0
+offset_left = 330.0
+offset_top = 548.0
+offset_right = 822.0
+offset_bottom = 570.0
+theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+text = "PRESS O OR SELECT FOR OPTIONS"
+horizontal_alignment = 1
+
 [node name="PromptLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = 285.0

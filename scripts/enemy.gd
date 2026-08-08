@@ -25,6 +25,7 @@ enum FireMode {
 @onready var muzzle: Marker2D = $Muzzle
 @onready var fire_timer: Timer = $FireTimer
 @onready var shot_sound: AudioStreamPlayer2D = $ShotSound
+@onready var engine_glow: Polygon2D = $EngineGlow
 
 var speed: float
 var min_fire_interval: float
@@ -65,6 +66,9 @@ func _process(delta: float) -> void:
 		hover_initialized = true
 
 	hover_time += delta
+	var glow_pulse := 0.72 + sin(hover_time * 8.0) * 0.22
+	engine_glow.modulate.a = glow_pulse
+	engine_glow.scale = Vector2.ONE * (0.92 + glow_pulse * 0.12)
 	global_position.x += direction * speed * delta
 	global_position.y = hover_center_y + sin(
 		hover_time * TAU * actual_hover_frequency
@@ -161,6 +165,13 @@ func destroy(award_points := true) -> void:
 			"shake_camera",
 			3.0,
 			0.12
+		)
+
+	if get_tree().current_scene.has_method("spawn_kill_feedback"):
+		get_tree().current_scene.call(
+			"spawn_kill_feedback",
+			global_position,
+			score_value if award_points else 0
 		)
 
 	queue_free()

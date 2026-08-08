@@ -1,0 +1,118 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/options_menu.gd" id="1_script"]
+
+[node name="OptionsMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.03, 0.06, 0.96)
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 40.0
+offset_right = 811.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(0.28, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0.02, 0.08, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 34
+text = "OPTIONS"
+horizontal_alignment = 1
+
+[node name="MainPanel" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 330.0
+offset_top = 110.0
+offset_right = 822.0
+offset_bottom = 600.0
+theme_override_constants/separation = 14
+
+[node name="MusicRow" type="HBoxContainer" parent="MainPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MusicLabel" type="Label" parent="MainPanel/MusicRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+theme_override_font_sizes/font_size = 18
+text = "MUSIC"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MusicSlider" type="HSlider" parent="MainPanel/MusicRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(200, 20)
+max_value = 1.0
+step = 0.01
+value = 0.6
+
+[node name="MusicValue" type="Label" parent="MainPanel/MusicRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(60, 0)
+theme_override_font_sizes/font_size = 18
+text = "60%"
+vertical_alignment = 1
+
+[node name="SfxRow" type="HBoxContainer" parent="MainPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SfxLabel" type="Label" parent="MainPanel/SfxRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+theme_override_font_sizes/font_size = 18
+text = "SFX"
+vertical_alignment = 1
+
+[node name="SfxSlider" type="HSlider" parent="MainPanel/SfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(200, 20)
+max_value = 1.0
+step = 0.01
+value = 0.8
+
+[node name="SfxValue" type="Label" parent="MainPanel/SfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(60, 0)
+theme_override_font_sizes/font_size = 18
+text = "80%"
+vertical_alignment = 1
+
+[node name="BindingsTitle" type="Label" parent="MainPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.28, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "CONTROLS"
+
+[node name="BindingsList" type="VBoxContainer" parent="MainPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BackButton" type="Button" parent="MainPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 42)
+theme_override_font_sizes/font_size = 20
+text = "BACK"
+
+[connection signal="value_changed" from="MainPanel/MusicRow/MusicSlider" to="." method="_on_music_volume_changed"]
+[connection signal="value_changed" from="MainPanel/SfxRow/SfxSlider" to="." method="_on_sfx_volume_changed"]
+[connection signal="pressed" from="MainPanel/BackButton" to="." method="_on_back_pressed"]

@@ -4,6 +4,9 @@ const EXPLOSION_SCENE := preload("res://scenes/explosion.tscn")
 const SHEENA_TEST_ATLAS := preload(
 	"res://assets/sprites/player/sheena_test/sheena_player_atlas_recolored.png"
 )
+const AIM_DOWN_DIAGONAL_ATLAS := preload(
+	"res://assets/sprites/player/commando/crouch_aim_down_red.png"
+)
 const SHEENA_FRAME_SIZE := 64
 const SHEENA_ANIMATIONS := {
 	&"idle": {"row": 0, "frames": 1, "speed": 1.0},
@@ -14,6 +17,10 @@ const SHEENA_ANIMATIONS := {
 	&"jump_up": {"row": 2, "frames": 1, "speed": 1.0},
 	&"crouch": {"row": 5, "frames": 1, "speed": 1.0},
 }
+const ACTIVE_RELOAD_WINDOW := 0.35
+const ACTIVE_RELOAD_TRIPLE_DURATION := 5.0
+const ACTIVE_RELOAD_MIN_RATIO := 0.35
+const ACTIVE_RELOAD_MAX_RATIO := 0.68
 
 signal health_changed(current_health: int)
 signal died
@@ -22,7 +29,8 @@ signal ammo_changed(current_ammo: int, magazine_size: int)
 @export var speed: float = 288.0
 @export var jump_velocity: float = -690.0
 @export var gravity: float = 1850.0
-@export var movement_response: float = 12.0
+@export var movement_response: float = 8.0
+@export var crouch_transition_speed: float = 14.0
 @export var horizontal_margin: float = 32.0
 @export var bullet_scene: PackedScene
 @export var max_health: int = 3
@@ -38,12 +46,16 @@ signal ammo_changed(current_ammo: int, magazine_size: int)
 @onready var muzzle_flash: Node2D = $Muzzle/MuzzleFlash
 @onready var muzzle_flash_timer: Timer = $MuzzleFlashTimer
 @onready var reload_timer: Timer = $ReloadTimer
+@onready var active_reload_start_timer: Timer = $ActiveReloadStartTimer
+@onready var active_reload_timer: Timer = $ActiveReloadTimer
 @onready var unlimited_ammo_timer: Timer = $UnlimitedAmmoTimer
 @onready var triple_shot_timer: Timer = $TripleShotTimer
 @onready var powerup_invulnerability_timer: Timer = $PowerupInvulnerabilityTimer
 @onready var reload_bar: ProgressBar = $ReloadBar
 @onready var reload_label: Label = $ReloadLabel
 @onready var shot_sound: AudioStreamPlayer2D = $ShotSound
+@onready var reload_sound: AudioStreamPlayer2D = $ReloadSound
+@onready var active_reload_success_sound: AudioStreamPlayer2D = $ActiveReloadSuccessSound
 @onready var hurt_sound: AudioStreamPlayer2D = $HurtSound
 
 var health: int
@@ -51,8 +63,13 @@ var is_invulnerable := false
 var facing_direction := 1.0
 var current_ammo: int
 var is_reloading := false
+var active_reload_available := false
+var reload_requested_by_controller := false
 var is_crouching := false
+var crouch_amount := 0.0
 var aiming_up := false
+var aiming_down_diagonal := false
+var aim_down_direction := 1.0
 var floor_y := 0.0
 var aim_direction := Vector2.RIGHT
 var unlimited_ammo_active := false
@@ -61,6 +78,7 @@ var powerup_invulnerable_active := false
 var bullet_speed_multiplier := 1.0
 var bullet_size_multiplier := 1.0
 var powerup_duration_multiplier := 1.0
+var active_reload_window_multiplier := 1.0
 
 
 func _ready() -> void:
@@ -103,12 +121,23 @@ func setup_sheena_test_frames() -> void:
 			frames.add_frame(animation_name, frame)
 
 	animated_sprite.sprite_frames = frames
+	frames.add_animation(&"aim_down_diagonal")
+	frames.set_animation_loop(&"aim_down_diagonal", true)
+	frames.set_animation_speed(&"aim_down_diagonal", 8.0)
+	for column in range(6):
+		var down_frame := AtlasTexture.new()
+		down_frame.atlas = AIM_DOWN_DIAGONAL_ATLAS
+		down_frame.region = Rect2(column * 64, 0, 64, 64)
+		frames.add_frame(&"aim_down_diagonal", down_frame)
 
 
 func _physics_process(delta: float) -> void:
 	var direction := Input.get_axis("move_left", "move_right")
 	var grounded := is_grounded()
 	is_crouching = Input.is_action_pressed("crouch") and grounded
+	aiming_down_diagonal = grounded and is_crouching and not is_zero_approx(direction)
+	if aiming_down_diagonal:
+		aim_down_direction = 1.0 if direction > 0.0 else -1.0
 	aiming_up = Input.is_action_pressed("aim_up") and not is_crouching
 
 	if not is_zero_approx(direction) and not is_crouching:
@@ -123,7 +152,11 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y += gravity * delta
 
-	var target_velocity_x := 0.0 if is_crouching else direction * speed
+	var target_velocity_x := (
+		0.0
+		if is_crouching and not aiming_down_diagonal
+		else direction * speed
+	)
 	var interpolation_factor := 1.0 - exp(-movement_response * delta)
 	velocity.x = lerpf(velocity.x, target_velocity_x, interpolation_factor)
 	move_and_slide()
@@ -140,6 +173,12 @@ func _physics_process(delta: float) -> void:
 
 	grounded = is_grounded()
 	is_crouching = Input.is_action_pressed("crouch") and grounded
+	var crouch_target := 1.0 if is_crouching else 0.0
+	crouch_amount = move_toward(
+		crouch_amount,
+		crouch_target,
+		crouch_transition_speed * delta
+	)
 	update_collision_shape()
 	update_aim_direction(direction, grounded)
 
@@ -151,6 +190,17 @@ func _physics_process(delta: float) -> void:
 
 	update_visual(is_shooting, direction, grounded)
 
+	var reload_requested := Input.is_action_just_pressed("reload")
+	if reload_requested_by_controller:
+		reload_requested = true
+		reload_requested_by_controller = false
+
+	if reload_requested:
+		if is_reloading:
+			attempt_active_reload()
+		else:
+			start_reload()
+
 	if is_shooting and fire_timer.is_stopped():
 		shoot()
 		fire_timer.start()
@@ -159,6 +209,16 @@ func _physics_process(delta: float) -> void:
 		reload_bar.value = reload_duration - reload_timer.time_left
 
 	update_powerup_visual()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if (
+		event is InputEventJoypadButton
+		and event.button_index == JOY_BUTTON_RIGHT_SHOULDER
+		and event.pressed
+	):
+		reload_requested_by_controller = true
+		get_viewport().set_input_as_handled()
 
 
 func is_grounded() -> bool:
@@ -173,12 +233,14 @@ func start_jump() -> void:
 func update_collision_shape() -> void:
 	var rectangle := collision_shape.shape as RectangleShape2D
 
-	if is_crouching:
-		rectangle.size = Vector2(50.0, 44.0)
-		collision_shape.position = Vector2(0.0, 25.0)
-	else:
-		rectangle.size = Vector2(36.0, 86.0)
-		collision_shape.position = Vector2(0.0, 4.0)
+	rectangle.size = Vector2(
+		lerpf(36.0, 50.0, crouch_amount),
+		lerpf(86.0, 44.0, crouch_amount)
+	)
+	collision_shape.position = Vector2(
+		0.0,
+		lerpf(4.0, 25.0, crouch_amount)
+	)
 
 
 func update_aim_direction(
@@ -191,7 +253,11 @@ func update_aim_direction(
 		and not is_zero_approx(movement_direction)
 	)
 
-	if aiming_diagonally:
+	if aiming_down_diagonal:
+		aim_direction = Vector2(aim_down_direction, 1.0).normalized()
+		muzzle.position = Vector2(18.0 * aim_down_direction, 16.0)
+		muzzle.rotation = PI * 0.75 * aim_down_direction
+	elif aiming_diagonally:
 		aim_direction = Vector2(facing_direction, -1.0).normalized()
 		muzzle.position = Vector2(36.0 * facing_direction, -38.0)
 		muzzle.rotation = PI * 0.25 * facing_direction
@@ -215,9 +281,14 @@ func update_visual(
 	grounded: bool
 ) -> void:
 	animated_sprite.flip_h = facing_direction < 0.0
+	animated_sprite.position = Vector2(0.0, 4.0)
 	var state := "idle"
 
-	if is_crouching:
+	if aiming_down_diagonal:
+		state = "aim_down_diagonal"
+		animated_sprite.flip_h = aim_down_direction < 0.0
+		animated_sprite.position = Vector2(0.0, -3.0)
+	elif is_crouching:
 		state = "crouch"
 		animated_sprite.flip_h = facing_direction > 0.0
 	elif not grounded:
@@ -274,14 +345,43 @@ func spawn_bullet(direction: Vector2) -> void:
 
 
 func start_reload() -> void:
-	if unlimited_ammo_active:
+	if unlimited_ammo_active or current_ammo >= magazine_size:
 		return
 
 	is_reloading = true
+	active_reload_available = false
+	active_reload_timer.stop()
+	reload_sound.play()
 	reload_bar.value = 0.0
 	reload_bar.show()
 	reload_label.show()
+	reload_label.text = "RELOADING"
+	reload_label.add_theme_color_override("font_color", Color.WHITE)
 	reload_timer.start()
+	active_reload_start_timer.start(
+		reload_duration * randf_range(
+			ACTIVE_RELOAD_MIN_RATIO,
+			ACTIVE_RELOAD_MAX_RATIO
+		)
+	)
+
+
+func attempt_active_reload() -> void:
+	if not active_reload_available:
+		start_reload()
+		return
+
+	active_reload_available = false
+	active_reload_timer.stop()
+	active_reload_start_timer.stop()
+	reload_timer.stop()
+	current_ammo = magazine_size
+	is_reloading = false
+	reload_bar.hide()
+	reload_label.hide()
+	activate_triple_shot(ACTIVE_RELOAD_TRIPLE_DURATION)
+	active_reload_success_sound.play()
+	ammo_changed.emit(current_ammo, magazine_size)
 
 
 func take_damage(amount: int) -> void:
@@ -318,9 +418,26 @@ func give_extra_life(maximum_health: int) -> bool:
 	return true
 
 
+func refill_ammo() -> void:
+	if current_ammo >= magazine_size:
+		return
+	is_reloading = false
+	active_reload_available = false
+	active_reload_start_timer.stop()
+	active_reload_timer.stop()
+	reload_timer.stop()
+	reload_bar.hide()
+	reload_label.hide()
+	current_ammo = magazine_size
+	ammo_changed.emit(current_ammo, magazine_size)
+
+
 func activate_unlimited_ammo(duration: float) -> void:
 	unlimited_ammo_active = true
 	is_reloading = false
+	active_reload_available = false
+	active_reload_start_timer.stop()
+	active_reload_timer.stop()
 	reload_timer.stop()
 	reload_bar.hide()
 	reload_label.hide()
@@ -383,6 +500,8 @@ func can_apply_upgrade(upgrade_id: String) -> bool:
 			return fire_timer.wait_time > 0.111
 		"powerup_duration":
 			return powerup_duration_multiplier < 1.99
+		"active_reload_window":
+			return active_reload_window_multiplier < 1.74
 		"recovery_window":
 			return invulnerability_time < 1.99
 		"jump_boost":
@@ -425,6 +544,11 @@ func apply_upgrade(upgrade_id: String) -> bool:
 				2.0,
 				powerup_duration_multiplier * 1.10
 			)
+		"active_reload_window":
+			active_reload_window_multiplier = minf(
+				1.75,
+				active_reload_window_multiplier * 1.15
+			)
 		"recovery_window":
 			invulnerability_time = minf(2.0, invulnerability_time * 1.10)
 			invulnerability_timer.wait_time = invulnerability_time
@@ -452,9 +576,31 @@ func _on_muzzle_flash_timer_timeout() -> void:
 func _on_reload_timer_timeout() -> void:
 	current_ammo = magazine_size
 	is_reloading = false
+	active_reload_available = false
+	active_reload_start_timer.stop()
+	active_reload_timer.stop()
 	reload_bar.hide()
 	reload_label.hide()
 	ammo_changed.emit(current_ammo, magazine_size)
+
+
+func _on_active_reload_start_timer_timeout() -> void:
+	if not is_reloading:
+		return
+	active_reload_available = true
+	reload_label.add_theme_color_override(
+		"font_color", Color(0.25, 1.0, 0.45, 1.0)
+	)
+	active_reload_timer.start(get_active_reload_window())
+
+
+func _on_active_reload_timer_timeout() -> void:
+	active_reload_available = false
+	reload_label.add_theme_color_override("font_color", Color.WHITE)
+
+
+func get_active_reload_window() -> float:
+	return ACTIVE_RELOAD_WINDOW * active_reload_window_multiplier
 
 
 func _on_unlimited_ammo_timer_timeout() -> void:

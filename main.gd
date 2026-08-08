@@ -37,6 +37,10 @@ const UPGRADE_DEFINITIONS := {
 		"title": "POWER CELL",
 		"description": "Temporary power-ups last 10% longer",
 	},
+	"active_reload_window": {
+		"title": "ACTIVE RELOAD TRAINING",
+		"description": "Active reload window +15% (maximum +75%)",
+	},
 	"recovery_window": {
 		"title": "COMBAT RECOVERY",
 		"description": "Post-hit protection lasts 10% longer",
@@ -57,6 +61,7 @@ const UPGRADE_DEFINITIONS := {
 @export var fast_enemy_scene: PackedScene
 @export var ground_enemy_scene: PackedScene
 @export var kamikaze_enemy_scene: PackedScene
+@export var ambush_enemy_scene: PackedScene
 @export var powerup_carrier_scene: PackedScene
 @export var powerup_item_scene: PackedScene
 @export var initial_max_enemies: int = 3
@@ -66,6 +71,7 @@ const UPGRADE_DEFINITIONS := {
 @export var wave_break_duration: float = 4.0
 @export var ground_enemy_start_wave: int = 3
 @export var kamikaze_start_wave: int = 4
+@export var ambush_start_wave: int = 5
 @export var starting_wave: int = 1
 
 @onready var enemy_spawn_timer: Timer = $EnemySpawnTimer
@@ -73,6 +79,9 @@ const UPGRADE_DEFINITIONS := {
 @onready var wave_message_timer: Timer = $WaveMessageTimer
 @onready var powerup_spawn_timer: Timer = $PowerupSpawnTimer
 @onready var camera: Camera2D = $Camera2D
+@onready var day_background: TextureRect = $DayBackground
+@onready var rain: GPUParticles2D = $Rain
+@onready var lightning_flash: ColorRect = $LightningFlash
 @onready var status_panel: Panel = $HUD/StatusPanel
 @onready var health_label: Label = $HUD/StatusPanel/HealthLabel
 @onready var ammo_label: Label = $HUD/StatusPanel/AmmoLabel
@@ -111,6 +120,7 @@ var max_enemies: int
 var is_game_over := false
 var waiting_for_initials := false
 var leaderboard: Array = []
+var _leaderboard_online_ready := false
 var wave_number := 1
 var wave_target := 0
 var wave_spawned := 0
@@ -124,6 +134,8 @@ var choosing_upgrade := false
 var current_upgrade_ids: Array[String] = []
 var hearts_row: HBoxContainer
 var heart_textures: Array[TextureRect] = []
+var lightning_countdown := 6.0
+var lightning_tween: Tween
 
 
 func _ready() -> void:
@@ -206,11 +218,23 @@ func _ready() -> void:
 
 
 func show_controls_temporarily() -> void:
-	if not Input.get_connected_joypads().is_empty():
-		controls_label.text = (
-			"STICK/D-PAD MOVE AND AIM   "
-			+ "A JUMP   X FIRE"
-		)
+	controls_label.text = (
+		"KEYS: %s MOVE  %s JUMP  %s CROUCH  %s AIM  %s FIRE  %s RELOAD\n"
+		+ "PAD: %s MOVE  %s JUMP  %s CROUCH  %s AIM  %s FIRE  %s RELOAD"
+	) % [
+		GameSettings.describe_key("move_left") + "/" + GameSettings.describe_key("move_right"),
+		GameSettings.describe_key("jump"),
+		GameSettings.describe_key("crouch"),
+		GameSettings.describe_key("aim_up"),
+		GameSettings.describe_key("shoot"),
+		GameSettings.describe_key("reload"),
+		GameSettings.describe_joypad("move_left") + "/" + GameSettings.describe_joypad("move_right"),
+		GameSettings.describe_joypad("jump"),
+		GameSettings.describe_joypad("crouch"),
+		GameSettings.describe_joypad("aim_up"),
+		GameSettings.describe_joypad("shoot"),
+		GameSettings.describe_joypad("reload"),
+	]
 
 	controls_label.show()
 	controls_label.modulate.a = 1.0
@@ -315,6 +339,8 @@ func start_game_over_music() -> void:
 
 func _process(delta: float) -> void:
 	update_camera_shake(delta)
+	update_day_night_cycle(delta)
+	update_weather(delta)
 
 	if is_game_over or choosing_upgrade or get_tree().paused:
 		return
@@ -325,6 +351,42 @@ func _process(delta: float) -> void:
 	while elapsed_time >= next_survival_score_time:
 		add_score(SURVIVAL_POINTS_PER_SECOND)
 		next_survival_score_time += 1.0
+
+
+func update_day_night_cycle(delta: float) -> void:
+	# Wave 1 starts in daylight; by wave 10 the original night is fully visible.
+	var night_progress := clampf(float(wave_number - 1) / 9.0, 0.0, 1.0)
+	var target_day_alpha := 1.0 - night_progress
+	day_background.modulate.a = move_toward(
+		day_background.modulate.a,
+		target_day_alpha,
+		delta * 0.08
+	)
+
+
+func update_weather(delta: float) -> void:
+	rain.emitting = wave_number >= 4 and not is_game_over
+
+	if wave_number < 7 or is_game_over:
+		lightning_countdown = 6.0
+		return
+
+	lightning_countdown -= delta
+	if lightning_countdown <= 0.0:
+		trigger_lightning()
+		lightning_countdown = randf_range(4.0, 10.0)
+
+
+func trigger_lightning() -> void:
+	if lightning_tween != null and lightning_tween.is_valid():
+		lightning_tween.kill()
+
+	lightning_flash.modulate.a = 0.0
+	lightning_tween = create_tween()
+	lightning_tween.tween_property(lightning_flash, "modulate:a", 0.5, 0.04)
+	lightning_tween.tween_property(lightning_flash, "modulate:a", 0.08, 0.08)
+	lightning_tween.tween_property(lightning_flash, "modulate:a", 0.38, 0.04)
+	lightning_tween.tween_property(lightning_flash, "modulate:a", 0.0, 0.22)
 
 
 func schedule_powerup_spawn(first_spawn := false) -> void:
@@ -512,6 +574,19 @@ func _on_enemy_spawn_timer_timeout() -> void:
 
 
 func choose_enemy_scene() -> PackedScene:
+	var ambush_probability := clampf(
+		0.05 + (wave_number - ambush_start_wave) * 0.015,
+		0.05,
+		0.12
+	)
+
+	if (
+		wave_number >= ambush_start_wave
+		and ambush_enemy_scene != null
+		and randf() < ambush_probability
+	):
+		return ambush_enemy_scene
+
 	var kamikaze_probability := clampf(
 		0.08 + (wave_number - kamikaze_start_wave) * 0.02,
 		0.08,
@@ -625,6 +700,41 @@ func _on_enemy_destroyed(enemy_score: int) -> void:
 
 	if wave_defeated >= wave_target:
 		finish_wave()
+
+
+func spawn_kill_feedback(pos: Vector2, enemy_score: int) -> void:
+	if is_game_over:
+		return
+	spawn_score_popup(pos, enemy_score)
+
+
+func spawn_score_popup(pos: Vector2, amount: int) -> void:
+	var popup := Label.new()
+	popup.text = "+%d" % amount
+	popup.add_theme_font_size_override("font_size", 16)
+	popup.add_theme_color_override(
+		"font_color",
+		Color(1.0, 0.95, 0.55, 1.0)
+	)
+	popup.add_theme_color_override(
+		"font_outline_color",
+		Color(0.0, 0.0, 0.0, 1.0)
+	)
+	popup.add_theme_constant_override("outline_size", 4)
+	popup.position = pos + Vector2(-30.0, -40.0)
+	popup.modulate.a = 0.0
+	add_child(popup)
+
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(
+		popup,
+		"position:y",
+		popup.position.y - 34.0,
+		0.9
+	).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(popup, "modulate:a", 1.0, 0.15)
+	tween.chain().tween_property(popup, "modulate:a", 0.0, 0.55)
+	tween.chain().tween_callback(popup.queue_free)
 
 
 func finish_wave() -> void:
@@ -930,10 +1040,10 @@ func _on_initials_input_text_submitted(new_text: String) -> void:
 		initials_input.placeholder_text = "TYPE SOMETHING"
 		return
 
-	while initials.length() < 3:
+	while initials.length() < 8:
 		initials += "-"
 
-	initials = initials.substr(0, 3)
+	initials = initials.substr(0, 8)
 
 	leaderboard.append({
 		"initials": initials,
@@ -947,6 +1057,7 @@ func _on_initials_input_text_submitted(new_text: String) -> void:
 		leaderboard.resize(MAX_SCORES)
 
 	save_leaderboard()
+	LeaderboardClient.submit_score(initials, current_score, elapsed_time, wave_number)
 
 	waiting_for_initials = false
 	initials_input.release_focus()
@@ -970,6 +1081,7 @@ func sort_scores(first_entry: Dictionary, second_entry: Dictionary) -> bool:
 
 
 func show_leaderboard() -> void:
+	_leaderboard_online_ready = false
 	var ranking_text := "HIGH SCORES\n\n"
 
 	if leaderboard.is_empty():
@@ -987,7 +1099,44 @@ func show_leaderboard() -> void:
 
 	leaderboard_label.text = ranking_text
 	leaderboard_label.show()
+	restart_label.text = "PRESS R / START TO RESTART\nPRESS O / SELECT FOR MENU"
 	restart_label.show()
+
+	if LeaderboardClient.is_online_enabled():
+		LeaderboardClient.request_top_scores(MAX_SCORES)
+
+
+func on_online_leaderboard_response(ok: bool, body_text: String) -> void:
+	if not ok:
+		return
+	if body_text.strip_edges().is_empty():
+		return
+	var parsed: Variant = JSON.parse_string(body_text)
+	if parsed is not Array:
+		return
+	if parsed.is_empty():
+		return
+	var merged := leaderboard.duplicate()
+	for entry in parsed:
+		if not entry is Dictionary:
+			continue
+		merged.append({
+			"initials": str(entry.get("player_name", "---")),
+			"score": int(entry.get("score", 0)),
+			"time": float(entry.get("survival_time", 0.0))
+		})
+	merged.sort_custom(sort_scores)
+	var top := merged.slice(0, MAX_SCORES)
+	var online_text := "GLOBAL TOP SCORES\n\n"
+	for index in range(top.size()):
+		var entry: Dictionary = top[index]
+		online_text += "%d. %s   %06d   %.1f s\n" % [
+			index + 1,
+			str(entry.get("initials", "---")),
+			int(entry.get("score", 0)),
+			float(entry.get("time", 0.0))
+		]
+	leaderboard_label.text = online_text
 
 
 func load_leaderboard() -> void:
@@ -1078,3 +1227,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		and event.is_action_pressed("restart")
 	):
 		get_tree().reload_current_scene()
+		get_viewport().set_input_as_handled()
+		return
+
+	if (
+		is_game_over
+		and not waiting_for_initials
+		and event.is_action_pressed("open_options")
+	):
+		get_tree().change_scene_to_file("res://scenes/intro.tscn")

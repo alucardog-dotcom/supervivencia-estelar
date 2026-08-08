@@ -56,8 +56,14 @@ func _process(delta: float) -> void:
 		global_position.x += direction * speed * delta
 
 	bob_time += delta
+	var step_phase := sin(bob_time * 16.0)
 	animated_sprite.position.y = (
 		-2.0 if int(bob_time * 8.0) % 2 == 0 else 0.0
+	)
+	animated_sprite.rotation = step_phase * 0.025
+	animated_sprite.scale = Vector2(
+		1.0 + step_phase * 0.025,
+		1.0 - step_phase * 0.025
 	)
 
 
@@ -116,6 +122,13 @@ func destroy(award_points := true) -> void:
 
 	if get_tree().current_scene.has_method("shake_camera"):
 		get_tree().current_scene.call("shake_camera", 3.5, 0.14)
+
+	if get_tree().current_scene.has_method("spawn_kill_feedback"):
+		get_tree().current_scene.call(
+			"spawn_kill_feedback",
+			global_position + Vector2(0.0, -22.0),
+			score_value if award_points else 0
+		)
 
 	queue_free()
 

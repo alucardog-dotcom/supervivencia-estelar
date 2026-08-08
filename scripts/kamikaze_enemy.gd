@@ -58,8 +58,10 @@ func _process(delta: float) -> void:
 func update_visual() -> void:
 	sprite.flip_h = direction < 0.0
 	var step := int(run_time * 14.0) % 2
+	var stride := sin(run_time * 18.0)
 	sprite.position.y = -3.0 if step == 0 else 0.0
-	sprite.rotation = direction * (0.035 if step == 0 else -0.02)
+	sprite.rotation = direction * (0.035 if step == 0 else -0.02) + stride * 0.018
+	sprite.scale = Vector2(1.0 + stride * 0.025, 1.0 - stride * 0.025)
 
 
 func destroy(award_points := true) -> void:
@@ -76,6 +78,13 @@ func destroy(award_points := true) -> void:
 
 	if get_tree().current_scene.has_method("shake_camera"):
 		get_tree().current_scene.call("shake_camera", 8.0, 0.3)
+
+	if get_tree().current_scene.has_method("spawn_kill_feedback"):
+		get_tree().current_scene.call(
+			"spawn_kill_feedback",
+			global_position + Vector2(0.0, -18.0),
+			score_value if award_points else 0
+		)
 
 	queue_free()
 

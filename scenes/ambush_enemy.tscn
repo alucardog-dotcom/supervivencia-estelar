@@ -1,0 +1,28 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ambush_enemy.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/airborne/ambush_ship.png" id="2_texture"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ambush"]
+size = Vector2(70, 58)
+
+[node name="AmbushEnemy" type="Area2D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_texture")
+
+[node name="WarningLight" type="Polygon2D" parent="."]
+z_index = -1
+position = Vector2(0, 0)
+polygon = PackedVector2Array(-10, -10, 0, -16, 10, -10, 16, 0, 10, 10, 0, 16, -10, 10, -16, 0)
+color = Color(1, 0.08, 0.04, 0.45)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_ambush")
+
+[connection signal="area_entered" from="." to="." method="_on_area_entered"]
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

@@ -14,6 +14,8 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/player/commando/crouch_left.png" id="11_crouch_left"]
 [ext_resource type="AudioStream" path="res://assets/audio/player_shot.wav" id="12_player_shot"]
 [ext_resource type="AudioStream" path="res://assets/audio/player_hurt.wav" id="13_player_hurt"]
+[ext_resource type="AudioStream" path="res://assets/audio/reload.wav" id="14_reload"]
+[ext_resource type="AudioStream" path="res://assets/audio/active_reload_success.wav" id="15_active_reload_success"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t3yyb"]
 size = Vector2(36, 86)
@@ -187,6 +189,7 @@ text = "RELOADING"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+
 [node name="Muzzle" type="Marker2D" parent="." unique_id=2088133257]
 position = Vector2(27, -52)
 
@@ -221,6 +224,13 @@ one_shot = true
 wait_time = 2.5
 one_shot = true
 
+[node name="ActiveReloadStartTimer" type="Timer" parent="."]
+one_shot = true
+
+[node name="ActiveReloadTimer" type="Timer" parent="."]
+wait_time = 0.35
+one_shot = true
+
 [node name="UnlimitedAmmoTimer" type="Timer" parent="."]
 one_shot = true
 
@@ -238,12 +248,22 @@ volume_db = -8.0
 stream = ExtResource("13_player_hurt")
 volume_db = -6.0
 
+[node name="ReloadSound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("14_reload")
+volume_db = -5.0
+
+[node name="ActiveReloadSuccessSound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("15_active_reload_success")
+volume_db = -3.0
+
 [node name="InvulnerabilityTimer" type="Timer" parent="." unique_id=1051610939]
 one_shot = true
 
 [connection signal="timeout" from="InvulnerabilityTimer" to="." method="_on_invulnerability_timer_timeout"]
 [connection signal="timeout" from="MuzzleFlashTimer" to="." method="_on_muzzle_flash_timer_timeout"]
 [connection signal="timeout" from="ReloadTimer" to="." method="_on_reload_timer_timeout"]
+[connection signal="timeout" from="ActiveReloadStartTimer" to="." method="_on_active_reload_start_timer_timeout"]
+[connection signal="timeout" from="ActiveReloadTimer" to="." method="_on_active_reload_timer_timeout"]
 [connection signal="timeout" from="UnlimitedAmmoTimer" to="." method="_on_unlimited_ammo_timer_timeout"]
 [connection signal="timeout" from="TripleShotTimer" to="." method="_on_triple_shot_timer_timeout"]
 [connection signal="timeout" from="PowerupInvulnerabilityTimer" to="." method="_on_powerup_invulnerability_timer_timeout"]
