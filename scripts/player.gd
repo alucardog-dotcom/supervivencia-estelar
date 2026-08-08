@@ -136,9 +136,9 @@ func _physics_process(delta: float) -> void:
 	var grounded := is_grounded()
 	is_crouching = Input.is_action_pressed("crouch") and grounded
 	aiming_down_diagonal = grounded and is_crouching and not is_zero_approx(direction)
+	aiming_up = Input.is_action_pressed("aim_up") and not is_crouching
 	if aiming_down_diagonal:
 		aim_down_direction = 1.0 if direction > 0.0 else -1.0
-	aiming_up = Input.is_action_pressed("aim_up") and not is_crouching
 
 	if not is_zero_approx(direction) and not is_crouching:
 		facing_direction = 1.0 if direction > 0.0 else -1.0

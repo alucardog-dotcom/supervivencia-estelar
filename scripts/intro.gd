@@ -55,21 +55,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not can_start or is_leaving:
 		return
 
+	if event.is_action_pressed("open_options"):
+		open_options()
+		get_viewport().set_input_as_handled()
+		return
+
 	var is_key := event is InputEventKey
 	var is_joy := event is InputEventJoypadButton
 	var is_mouse := event is InputEventMouseButton
-
-	if is_key and (event.pressed and not event.echo):
-		if event.physical_keycode == KEY_O:
-			open_options()
-			return
-	if (
-		is_joy
-		and event.pressed
-		and event.button_index == JOY_BUTTON_BACK
-	):
-		open_options()
-		return
 
 	var pressed := false
 	if is_key:

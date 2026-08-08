@@ -4,10 +4,12 @@ extends Node
 const LEADERBOARD_ENDPOINT := "https://rgueilijcmisctasgakx.supabase.co/rest/v1/leaderboard_scores"
 const LEADERBOARD_PUBLIC_KEY := "sb_publishable_aV-SR-994h-0MfPx4Wul8w_LwQJzLxg"
 const SUBMIT_TIMEOUT := 4.0
-const GAME_VERSION := "0.1.0"
+const GAME_VERSION := "0.2.0"
 
 var http: HTTPRequest = null
 var request_in_flight := false
+var pending_top_rows := 0
+var request_kind := ""
 var _last_run_id := ""
 
 
@@ -69,12 +71,16 @@ func submit_score(initials: String, score: int, time_s: float, wave: int) -> boo
 	)
 	if err != OK:
 		return false
+	request_kind = "submit"
 	request_in_flight = true
 	return true
 
 
 func request_top_scores(max_rows: int = 5) -> bool:
-	if not is_online_enabled() or request_in_flight:
+	if not is_online_enabled():
+		return false
+	if request_in_flight:
+		pending_top_rows = maxi(pending_top_rows, max_rows)
 		return false
 	_ensure_http_node()
 	var headers := PackedStringArray([
@@ -86,6 +92,7 @@ func request_top_scores(max_rows: int = 5) -> bool:
 	var err := http.request(url, headers, HTTPClient.METHOD_GET)
 	if err != OK:
 		return false
+	request_kind = "top"
 	request_in_flight = true
 	return true
 
@@ -96,15 +103,20 @@ func _on_request_completed(
 	headers: PackedStringArray,
 	body: PackedByteArray
 ) -> void:
+	var completed_request_kind := request_kind
+	request_kind = ""
 	request_in_flight = false
 	var tree := get_tree()
-	if tree == null:
-		return
-	var scene := tree.current_scene
-	if scene == null or not scene.has_method("on_online_leaderboard_response"):
-		return
-	scene.call(
-		"on_online_leaderboard_response",
-		result == HTTPRequest.RESULT_SUCCESS and response_code >= 200 and response_code < 300,
-		body.get_string_from_utf8()
-	)
+	if completed_request_kind == "top" and tree != null:
+		var scene := tree.current_scene
+		if scene != null and scene.has_method("on_online_leaderboard_response"):
+			scene.call(
+				"on_online_leaderboard_response",
+				result == HTTPRequest.RESULT_SUCCESS and response_code >= 200 and response_code < 300,
+				body.get_string_from_utf8()
+			)
+
+	if pending_top_rows > 0:
+		var rows_to_request := pending_top_rows
+		pending_top_rows = 0
+		request_top_scores(rows_to_request)

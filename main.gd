@@ -342,6 +342,10 @@ func start_game_over_music() -> void:
 
 func _process(delta: float) -> void:
 	update_camera_shake(delta)
+
+	if get_tree().paused:
+		return
+
 	update_day_night_cycle(delta)
 	update_weather(delta)
 
@@ -1044,10 +1048,10 @@ func _on_initials_input_text_submitted(new_text: String) -> void:
 		initials_input.placeholder_text = "TYPE SOMETHING"
 		return
 
-	while initials.length() < 8:
-		initials += "-"
+	initials = initials.substr(0, 3)
 
-	initials = initials.substr(0, 8)
+	while initials.length() < 3:
+		initials += "-"
 
 	leaderboard.append({
 		"initials": initials,
@@ -1120,20 +1124,20 @@ func on_online_leaderboard_response(ok: bool, body_text: String) -> void:
 		return
 	if parsed.is_empty():
 		return
-	var merged := leaderboard.duplicate()
+	var online_entries: Array = []
 	for entry in parsed:
 		if not entry is Dictionary:
 			continue
-		merged.append({
+		online_entries.append({
 			"initials": str(entry.get("player_name", "---")),
 			"score": int(entry.get("score", 0)),
 			"time": float(entry.get("survival_time", 0.0))
 		})
-	merged.sort_custom(sort_scores)
-	var top := merged.slice(0, MAX_SCORES)
+	online_entries.sort_custom(sort_scores)
+	leaderboard = online_entries.slice(0, MAX_SCORES)
 	var online_text := "GLOBAL TOP SCORES\n\n"
-	for index in range(top.size()):
-		var entry: Dictionary = top[index]
+	for index in range(leaderboard.size()):
+		var entry: Dictionary = leaderboard[index]
 		online_text += "%d. %s   %06d   %.1f s\n" % [
 			index + 1,
 			str(entry.get("initials", "---")),

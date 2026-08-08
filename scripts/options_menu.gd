@@ -11,6 +11,8 @@ const BINDABLE_ACTIONS := [
 	["shoot", "SHOOT"],
 	["reload", "RELOAD"],
 	["pause", "PAUSE"],
+	["open_options", "OPTIONS MENU"],
+	["restart", "RESTART"],
 ]
 
 @onready var music_slider: HSlider = %MusicSlider

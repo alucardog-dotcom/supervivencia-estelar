@@ -10,7 +10,7 @@ var random := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_ALWAYS
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	random.seed = 7137
 	for index in DROP_COUNT:
 		drops.append(Vector2(
