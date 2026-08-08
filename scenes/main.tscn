@@ -86,8 +86,9 @@ stretch_mode = 6
 z_index = 20
 position = Vector2(576, -24)
 emitting = false
-amount = 220
-lifetime = 1.15
+amount = 300
+lifetime = 1.6
+visibility_rect = Rect2(-640, -40, 1280, 760)
 process_material = SubResource("ParticleProcessMaterial_rain")
 draw_pass_1 = SubResource("QuadMesh_rain")
 

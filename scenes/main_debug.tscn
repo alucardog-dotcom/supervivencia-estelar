@@ -3,4 +3,4 @@
 [ext_resource type="PackedScene" path="res://scenes/main.tscn" id="1_main"]
 
 [node name="MainDebug" instance=ExtResource("1_main")]
-starting_wave = 20
+starting_wave = 7
