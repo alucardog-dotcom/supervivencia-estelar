@@ -73,6 +73,7 @@ const UPGRADE_DEFINITIONS := {
 @export var kamikaze_start_wave: int = 4
 @export var ambush_start_wave: int = 5
 @export var starting_wave: int = 1
+@export var debug_invulnerable: bool = false
 
 @onready var enemy_spawn_timer: Timer = $EnemySpawnTimer
 @onready var wave_break_timer: Timer = $WaveBreakTimer
@@ -165,6 +166,7 @@ func _ready() -> void:
 
 	max_enemies = initial_max_enemies
 	wave_number = maxi(1, starting_wave)
+	$Player.powerup_invulnerable_active = debug_invulnerable
 	start_gameplay_music()
 	load_leaderboard()
 	update_score_label()

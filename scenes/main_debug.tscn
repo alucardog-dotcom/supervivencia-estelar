@@ -4,3 +4,4 @@
 
 [node name="MainDebug" instance=ExtResource("1_main")]
 starting_wave = 7
+debug_invulnerable = true
