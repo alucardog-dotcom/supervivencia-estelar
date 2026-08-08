@@ -1065,7 +1065,7 @@ func _on_initials_input_text_submitted(new_text: String) -> void:
 		leaderboard.resize(MAX_SCORES)
 
 	save_leaderboard()
-	LeaderboardClient.submit_score(initials, current_score, elapsed_time, wave_number)
+	LeaderboardClient.submit_score(initials, current_score, elapsed_time)
 
 	waiting_for_initials = false
 	initials_input.release_focus()

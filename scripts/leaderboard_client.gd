@@ -4,13 +4,10 @@ extends Node
 const LEADERBOARD_ENDPOINT := "https://rgueilijcmisctasgakx.supabase.co/rest/v1/leaderboard_scores"
 const LEADERBOARD_PUBLIC_KEY := "sb_publishable_aV-SR-994h-0MfPx4Wul8w_LwQJzLxg"
 const SUBMIT_TIMEOUT := 4.0
-const GAME_VERSION := "0.2.0"
-
 var http: HTTPRequest = null
 var request_in_flight := false
 var pending_top_rows := 0
 var request_kind := ""
-var _last_run_id := ""
 
 
 func _ready() -> void:
@@ -29,25 +26,7 @@ func _ensure_http_node() -> void:
 		http.request_completed.connect(_on_request_completed)
 
 
-func generate_run_id() -> String:
-	var hex := "0123456789abcdef"
-	var result := ""
-	for index in 32:
-		result += hex[randi() % 16]
-	return (
-		result.substr(0, 8) + "-" + result.substr(8, 4) + "-"
-		+ result.substr(12, 4) + "-" + result.substr(16, 4) + "-"
-		+ result.substr(20, 12)
-	)
-
-
-func get_pending_run_id() -> String:
-	if _last_run_id == "":
-		_last_run_id = generate_run_id()
-	return _last_run_id
-
-
-func submit_score(initials: String, score: int, time_s: float, wave: int) -> bool:
+func submit_score(initials: String, score: int, time_s: float) -> bool:
 	if not is_online_enabled() or request_in_flight:
 		return false
 	_ensure_http_node()
