@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://b2yy8iynfxevu" path="res://scenes/fast_enemy.tscn" id="4_tbgi4"]
 [ext_resource type="Texture2D" uid="uid://dh3p1kccvvqlw" path="res://assets/backgrounds/earth_last_stand_platform_pixel.png" id="5_background"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/earth_last_stand_platform_day.png" id="19_day_background"]
+[ext_resource type="Script" path="res://scripts/weather_effects.gd" id="20_weather"]
 [ext_resource type="Texture2D" uid="uid://dujimm3saj7hl" path="res://assets/ui/red_commando_portrait_exact.png" id="6_portrait"]
 [ext_resource type="PackedScene" path="res://scenes/ground_enemy.tscn" id="7_ground_enemy"]
 [ext_resource type="AudioStream" uid="uid://8e3q2obpo8p0" path="res://assets/audio/ground_enemy_warning.wav" id="8_ground_warning"]
@@ -91,6 +92,10 @@ lifetime = 1.6
 visibility_rect = Rect2(-640, -40, 1280, 760)
 process_material = SubResource("ParticleProcessMaterial_rain")
 draw_pass_1 = SubResource("QuadMesh_rain")
+
+[node name="WeatherEffects" type="Node2D" parent="."]
+z_index = 20
+script = ExtResource("20_weather")
 
 [node name="LightningFlash" type="ColorRect" parent="."]
 z_index = 40

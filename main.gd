@@ -82,6 +82,7 @@ const UPGRADE_DEFINITIONS := {
 @onready var camera: Camera2D = $Camera2D
 @onready var day_background: TextureRect = $DayBackground
 @onready var rain: GPUParticles2D = $Rain
+@onready var weather_effects: Node2D = $WeatherEffects
 @onready var lightning_flash: ColorRect = $LightningFlash
 @onready var status_panel: Panel = $HUD/StatusPanel
 @onready var health_label: Label = $HUD/StatusPanel/HealthLabel
@@ -367,7 +368,8 @@ func update_day_night_cycle(delta: float) -> void:
 
 
 func update_weather(delta: float) -> void:
-	rain.emitting = wave_number >= 4 and not is_game_over
+	rain.emitting = false
+	weather_effects.rain_active = wave_number >= 4 and not is_game_over
 
 	if wave_number < 7 or is_game_over:
 		lightning_countdown = 6.0
